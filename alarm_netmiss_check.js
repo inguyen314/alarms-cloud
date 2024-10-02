@@ -16,7 +16,7 @@ const currentDateTimeMinus8Hours = subtractHoursFromDate(currentDateTime, 8);
 // console.log('currentDateTimeMinus8Hours :', currentDateTimeMinus8Hours);
 
 // Subtract thirty hours from current date and time
-const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 8);
+const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 30);
 // console.log('currentDateTimeMinus30Hours :', currentDateTimeMinus30Hours);
 
 // Add thirty hours to current date and time
