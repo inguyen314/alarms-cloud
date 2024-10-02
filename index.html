@@ -5,13 +5,13 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Title</title>
+    <title>Alarms Cloud</title>
     <meta name="Description" content="U.S. Army Corps of Engineers St. Louis District Home Page" />
     <link rel="stylesheet" href="css/body.css" />
     <link rel="stylesheet" href="css/breadcrumbs.css" />
     <link rel="stylesheet" href="css/jumpMenu.css" />
     <link rel="stylesheet" href="css/sidebar.css" />
-    <link rel="stylesheet" href="stylesheets/style.css" />
+    <link rel="stylesheet" href="css/style.css" />
     <script type="text/javascript" src="js/main.js"></script>
     <!-- Add sidebar.css IF NOT LOAD SIDEBAR TEMPLATE -->
     <link rel="stylesheet" href="css/sidebar.css" />
@@ -21,6 +21,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Include the Moment.js adapter for Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #000; /* Black border for table cells */
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: darkblue; /* Light gray background for headers */
+            color: lightblue;
+        }
+    </style>
 </head>
 
 <body>
@@ -37,11 +52,17 @@
                     <div id="topPane" class="col-md backend-cp-collapsible">
                         <div class="box-usace">
                             <h2 class="box-header-striped">
-                                <span class="titleLabel title">Title</span>
+                                <span class="titleLabel title">Netmiss Check Cloud</span>
                                 <span class="rss"></span>
                             </h2>
                             <div class="box-content" style="background-color:white;margin:auto">
                                 <div class="content">
+                                    <div id="loading_alarm_netmiss_check" style="display: none;"><img
+                                            src="images/loading4.gif" style='height: 50px; width: 50px;'
+                                            alt="Loading..." /></div>
+                                    <div id="table_container_alarm_netmiss_check"></div>
+                                    <div id="loading_alarm_netmiss_check_failed"></div>
+                                    <script src='alarm_netmiss_check.js'></script>
                                 </div>
                             </div>
                         </div>

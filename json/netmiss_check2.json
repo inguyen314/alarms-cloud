@@ -1,0 +1,18 @@
+[
+    {
+        "project_id": "LD 24 TW-Mississippi",
+        "tsid": {
+            "stage_cwms_ts_id": "LD 24 TW-Mississippi.Stage.Inst.30Minutes.0.lrgsShef-rev",
+            "netmiss_cwms_ts_id": "LD 24 TW-Mississippi.Stage.Inst.~1Day.0.netmiss-fcst",
+            "nws_cwms_ts_id": "LD 24 TW-Mississippi.Stage.Inst.6Hours.0.RVFShef-FF"
+        }
+    },
+    {
+        "project_id": "LD 25 TW-Mississippi",
+        "tsid": {
+            "stage_cwms_ts_id": "LD 25 TW-Mississippi.Stage.Inst.30Minutes.0.lrgsShef-rev",
+            "netmiss_cwms_ts_id": "LD 25 TW-Mississippi.Stage.Inst.~1Day.0.netmiss-fcst",
+            "nws_cwms_ts_id": "LD 25 TW-Mississippi.Stage.Inst.6Hours.0.RVFShef-FF"
+        }
+    }
+]
