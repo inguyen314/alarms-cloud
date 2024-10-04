@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     // console.log("apiUrl: ", apiUrl);
 
     const netmissTsidMap = new Map();
+    const metadataMap = new Map();
+
+    const metadataPromises = [];
     const netmissTsidPromises = [];
 
     // Get current date and time
@@ -68,6 +71,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             if (firstData['assigned-locations']) {
                                 firstData['assigned-locations'].forEach(loc => {
+
                                     let netmissTsidApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Netmiss-Comparison?office=${office}&category-id=${loc['location-id']}`;
                                     if (netmissTsidApiUrl) {
                                         netmissTsidPromises.push(
@@ -113,6 +117,35 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 })
                                         );
                                     }
+
+                                    if ("metadata" === "metadata") {
+                                        // Construct the URL for the location metadata request
+                                        let locApiUrl = `https://coe-${office.toLocaleLowerCase()}uwa04${office.toLocaleLowerCase()}.${office.toLocaleLowerCase()}.usace.army.mil:8243/${office.toLocaleLowerCase()}-data/locations/${loc['location-id']}?office=${office}`;
+                                        if (locApiUrl) {
+                                            // Push the fetch promise to the metadataPromises array
+                                            metadataPromises.push(
+                                                fetch(locApiUrl)
+                                                    .then(response => {
+                                                        if (response.status === 404) {
+                                                            console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                                            return null; // Skip processing if no metadata is found
+                                                        }
+                                                        if (!response.ok) {
+                                                            throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                        }
+                                                        return response.json();
+                                                    })
+                                                    .then(locData => {
+                                                        if (locData) {
+                                                            metadataMap.set(loc['location-id'], locData);
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                                    })
+                                            );
+                                        }
+                                    }
                                 });
                             }
                         })
@@ -130,12 +163,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                             basinData['assigned-locations'].forEach(loc => {
                                 const netmissTsidMapData = netmissTsidMap.get(loc['location-id']);
                                 console.log('netmissTsidMapData:', netmissTsidMapData);
-
-                                // Reorder the assigned-time-series
                                 reorderByAttribute(netmissTsidMapData);
-
                                 if (netmissTsidMapData) {
                                     loc['tsid-netmiss'] = netmissTsidMapData;
+                                }
+
+                                const metadataMapData = metadataMap.get(loc['location-id']);
+                                if (metadataMapData) {
+                                    loc['metadata'] = metadataMapData;
                                 }
                             });
                         }
