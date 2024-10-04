@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             return response.json();
                         })
                         .then(firstData => {
+                            console.log('firstData:', firstData);
+
                             if (!firstData) {
                                 console.log(`No data for basin: ${basin}`);
                                 return;
@@ -80,6 +82,28 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     return response.json();
                                                 })
                                                 .then(netmissTsidData => {
+                                                    console.log('netmissTsidData:', netmissTsidData);
+
+                                                    // Extract the dynamic part from time-series-category
+                                                    let dynamicId = netmissTsidData['time-series-category']['id'];
+
+                                                    // Create the new timeseries-id dynamically
+                                                    let newTimeseriesId = `${dynamicId}.Stage.Inst.~1Day.0.netmiss-fcst`;
+
+                                                    // New object to append
+                                                    let newAssignedTimeSeries = {
+                                                        "office-id": "MVS",
+                                                        "timeseries-id": newTimeseriesId, // Use dynamic timeseries-id
+                                                        "ts-code": null,
+                                                        "attribute": 2
+                                                    };
+
+                                                    // Append the new object to assigned-time-series
+                                                    netmissTsidData['assigned-time-series'].push(newAssignedTimeSeries);
+
+                                                    // Logging the updated object to verify the change
+                                                    console.log(netmissTsidData);
+
                                                     if (netmissTsidData) {
                                                         netmissTsidMap.set(loc['location-id'], netmissTsidData);
                                                     }
@@ -355,12 +379,12 @@ function createTable(data) {
 
     // Set widths for columns
     const columnWidths = ['40%', '20%', '20%', '20%'];
-    
+
     // Set the width for header cells
     Array.from(table.getElementsByTagName('th')).forEach((th, index) => {
         th.style.width = columnWidths[index];
     });
-    
+
     // Set the width for body cells
     Array.from(table.getElementsByTagName('td')).forEach((td, index) => {
         td.style.width = columnWidths[index % columnWidths.length]; // Use modulus to cycle through widths
