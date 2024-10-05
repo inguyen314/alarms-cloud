@@ -361,7 +361,7 @@ const findValuesAtTimes = (data) => {
 function getValidValue(values) {
     // Get the first non-null value from the values array
     const validValue = values.find(valueEntry => valueEntry.value !== null);
-    return validValue ? (validValue.value).toFixed(2) : 'N/A';
+    return validValue ? (validValue.value).toFixed(1) : 'N/A';
 }
 
 function createTable(data) {
@@ -369,12 +369,17 @@ function createTable(data) {
     const thead = document.createElement('thead');
     const tbody = document.createElement('tbody');
 
+    table.id = 'customers';
+
     // Create table header
     const headerRow = document.createElement('tr');
     const headers = ['Location', 'Stage', 'Netmiss', 'NWS'];
     headers.forEach(headerText => {
         const th = document.createElement('th');
         th.textContent = headerText;
+        // Apply styles
+        th.style.backgroundColor = 'darkblue';
+        th.style.color = 'lightgray';
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
@@ -390,6 +395,9 @@ function createTable(data) {
             const netmissValue = getValidValue(location.netmissDataPreferredTimes[0].values);
             const nwsValue = getValidValue(location.nwsDataPreferredTimes[0].values);
 
+            const netmissValueDelta = (stageValue - netmissValue).toFixed(1);
+            const nwsValueDelta = (stageValue - nwsValue).toFixed(1);
+
             // Create a link for stageValue
             const stageLink = document.createElement('a');
             stageLink.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=96`; // URL with location name
@@ -400,12 +408,37 @@ function createTable(data) {
             row.innerHTML = `
                 <td>${locationId}</td>
                 <td></td>
-                <td>${netmissValue}</td>
-                <td>${nwsValue}</td>
+                <td>${netmissValue} (${netmissValueDelta})</td>
+                <td>${nwsValue} (${nwsValueDelta})</td>
             `;
 
             // Append the link to the second cell (stage column)
             row.cells[1].appendChild(stageLink);
+
+            // Apply styles based on netmissValueDelta
+            if (Math.abs(netmissValueDelta) > 0.49) {
+                row.cells[2].style.backgroundColor = "purple";
+                row.cells[2].style.color = "lightgray";
+            } else if (netmissValueDelta >= 0.25) {
+                row.cells[2].style.backgroundColor = "pink";
+            } else if (netmissValueDelta <= -0.25) {
+                row.cells[2].style.backgroundColor = "DodgerBlue";
+            } else {
+                row.cells[2].style.backgroundColor = "MediumSeaGreen";
+            }
+
+            // Apply styles based on nwsValueDelta
+            if (Math.abs(nwsValueDelta) > 0.49) {
+                row.cells[3].style.backgroundColor = "purple";
+                row.cells[3].style.color = "lightgray";
+            } else if (nwsValueDelta >= 0.25) {
+                row.cells[3].style.backgroundColor = "pink";
+            } else if (nwsValueDelta <= -0.25) {
+                row.cells[3].style.backgroundColor = "DodgerBlue";
+            } else {
+                row.cells[3].style.backgroundColor = "MediumSeaGreen";
+            }
+
             tbody.appendChild(row);
         });
     });

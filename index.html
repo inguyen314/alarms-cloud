@@ -6,7 +6,7 @@
     const urlParams = new URLSearchParams(window.location.search);
 
     const param5Value = urlParams.get('office');
-    var office = urlParams.get('office');
+    var office = urlParams.get('office')|| 'MVS';
     console.log('office: ', office);
 
     // Calculate the document root
@@ -57,21 +57,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Include the Moment.js adapter for Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #000; /* Black border for table cells */
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: darkblue; /* Light gray background for headers */
-            color: lightblue;
-        }
-    </style>
 </head>
 
 <body>
@@ -93,7 +78,7 @@
                             </h2>
                             <div class="box-content" style="background-color:white;margin:auto">
                                 <div class="content">
-                                    <!-- netmiss check -->
+                                    <!-- netmiss check cloud-->
                                     <div id="loading_alarm_netmiss_check" style="display: none;"><img
                                             src="images/loading4.gif" style='height: 50px; width: 50px;'
                                             alt="Loading..." /></div>
