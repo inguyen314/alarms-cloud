@@ -12,7 +12,7 @@
     padding-top: 10px;
     padding-bottom: 10px;
     text-align: left;
-    background-color: #444;
+    background-color: darkblue;
     color: white;
 }
 
@@ -41,3 +41,13 @@
 }
 
 #customers tr:hover {background-color: #ddd;}
+
+.blinking-text {
+	color: red;
+	animation: blink 1s infinite;
+}
+@keyframes blink {
+	0% { opacity: 1; }
+	50% { opacity: 0; }
+	100% { opacity: 1; }
+}

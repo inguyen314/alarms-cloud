@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            const targetCategory = { "office-id": office, "id": "Netmiss-Comparison" };
+            const targetCategory = { "office-id": office, "id": category };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
             if (basins.length === 0) {
@@ -283,87 +283,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
 });
 
-function filterByLocationCategory(array, category) {
-    return array.filter(item =>
-        item['location-category'] &&
-        item['location-category']['office-id'] === category['office-id'] &&
-        item['location-category']['id'] === category['id']
-    );
-}
-
-// Function to get current data time
-function subtractHoursFromDate(date, hoursToSubtract) {
-    return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-}
-
-// Function to convert timestamp to specified format
-function formatNWSDate(timestamp) {
-    const date = new Date(timestamp);
-    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
-    const dd = String(date.getDate()).padStart(2, '0'); // Day
-    const yyyy = date.getFullYear(); // Year
-    const hh = String(date.getHours()).padStart(2, '0'); // Hours
-    const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
-    return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
-}
-
-// Function to reorder based on attribute
-const reorderByAttribute = (data) => {
-    data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-};
-
-// Function to format time to get 6am
-const formatTime = (date) => {
-    const pad = (num) => (num < 10 ? '0' + num : num);
-    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-// Function to get 6am, 5am and 7am
-const findValuesAtTimes = (data) => {
-    const result = [];
-    const currentDate = new Date();
-
-    // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-    const timesToCheck = [
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-    ];
-
-    const foundValues = [];
-
-    // Iterate over the values in the provided data
-    const values = data.values;
-
-    // Check for each time in the order of preference
-    timesToCheck.forEach((time) => {
-        // Format the date-time to match the format in the data
-        const formattedTime = formatTime(time);
-
-        const entry = values.find(v => v[0] === formattedTime);
-        if (entry) {
-            foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-        } else {
-            foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-        }
-    });
-
-    // Push the result for this data entry
-    result.push({
-        name: data.name,
-        values: foundValues // This will contain the array of { time, value } objects
-    });
-
-    return result;
-};
-
-// Function to extract the am value for table
-function getValidValue(values) {
-    // Get the first non-null value from the values array
-    const validValue = values.find(valueEntry => valueEntry.value !== null);
-    return validValue ? (validValue.value).toFixed(1) : 'N/A';
-}
-
 function createTable(data) {
     const table = document.createElement('table');
     const thead = document.createElement('thead');
@@ -459,4 +378,85 @@ function createTable(data) {
     });
 
     return table;
+}
+
+function filterByLocationCategory(array, category) {
+    return array.filter(item =>
+        item['location-category'] &&
+        item['location-category']['office-id'] === category['office-id'] &&
+        item['location-category']['id'] === category['id']
+    );
+}
+
+// Function to get current data time
+function subtractHoursFromDate(date, hoursToSubtract) {
+    return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
+}
+
+// Function to convert timestamp to specified format
+function formatNWSDate(timestamp) {
+    const date = new Date(timestamp);
+    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
+    const dd = String(date.getDate()).padStart(2, '0'); // Day
+    const yyyy = date.getFullYear(); // Year
+    const hh = String(date.getHours()).padStart(2, '0'); // Hours
+    const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
+    return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
+}
+
+// Function to reorder based on attribute
+const reorderByAttribute = (data) => {
+    data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
+};
+
+// Function to format time to get 6am
+const formatTime = (date) => {
+    const pad = (num) => (num < 10 ? '0' + num : num);
+    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+// Function to get 6am, 5am and 7am
+const findValuesAtTimes = (data) => {
+    const result = [];
+    const currentDate = new Date();
+
+    // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
+    const timesToCheck = [
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
+    ];
+
+    const foundValues = [];
+
+    // Iterate over the values in the provided data
+    const values = data.values;
+
+    // Check for each time in the order of preference
+    timesToCheck.forEach((time) => {
+        // Format the date-time to match the format in the data
+        const formattedTime = formatTime(time);
+
+        const entry = values.find(v => v[0] === formattedTime);
+        if (entry) {
+            foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
+        } else {
+            foundValues.push({ time: formattedTime, value: null }); // Store null if not found
+        }
+    });
+
+    // Push the result for this data entry
+    result.push({
+        name: data.name,
+        values: foundValues // This will contain the array of { time, value } objects
+    });
+
+    return result;
+};
+
+// Function to extract the am value for table
+function getValidValue(values) {
+    // Get the first non-null value from the values array
+    const validValue = values.find(valueEntry => valueEntry.value !== null);
+    return validValue ? (validValue.value).toFixed(1) : 'N/A';
 }
