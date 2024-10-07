@@ -270,186 +270,189 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.error('There was a problem with the initial fetch operation:', error);
             loadingIndicator.style.display = 'none';
         });
-});
 
-function filterByLocationCategory(array, category) {
-    return array.filter(item =>
-        item['location-category'] &&
-        item['location-category']['office-id'] === category['office-id'] &&
-        item['location-category']['id'] === category['id']
-    );
-}
-
-// Function to get current data time
-function subtractHoursFromDate(date, hoursToSubtract) {
-    return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-}
-
-// Function to convert timestamp to specified format
-function formatNWSDate(timestamp) {
-    const date = new Date(timestamp);
-    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
-    const dd = String(date.getDate()).padStart(2, '0'); // Day
-    const yyyy = date.getFullYear(); // Year
-    const hh = String(date.getHours()).padStart(2, '0'); // Hours
-    const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
-    return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
-}
-
-// Function to reorder based on attribute
-const reorderByAttribute = (data) => {
-    data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-};
-
-// Function to format time to get 6am
-const formatTime = (date) => {
-    const pad = (num) => (num < 10 ? '0' + num : num);
-    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-// Function to get 6am, 5am and 7am
-const findValuesAtTimes = (data) => {
-    const result = [];
-    const currentDate = new Date();
-
-    // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-    const timesToCheck = [
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-    ];
-
-    const foundValues = [];
-
-    // Iterate over the values in the provided data
-    const values = data.values;
-
-    // Check for each time in the order of preference
-    timesToCheck.forEach((time) => {
-        // Format the date-time to match the format in the data
-        const formattedTime = formatTime(time);
-
-        const entry = values.find(v => v[0] === formattedTime);
-        if (entry) {
-            foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-        } else {
-            foundValues.push({ time: formattedTime, value: null }); // Store null if not found
+        function filterByLocationCategory(array, category) {
+            return array.filter(item =>
+                item['location-category'] &&
+                item['location-category']['office-id'] === category['office-id'] &&
+                item['location-category']['id'] === category['id']
+            );
         }
-    });
-
-    // Push the result for this data entry
-    result.push({
-        name: data.name,
-        values: foundValues // This will contain the array of { time, value } objects
-    });
-
-    return result;
-};
-
-// Function to extract the am value for table
-function getValidValue(values) {
-    // Get the first non-null value from the values array
-    const validValue = values.find(valueEntry => valueEntry.value !== null);
-    return validValue ? (validValue.value).toFixed(1) : 'N/A';
-}
-
-// Function to get the last non null value from values array
-function getLastNonNullValue(data) {
-    // Iterate over the values array in reverse
-    for (let i = data.values.length - 1; i >= 0; i--) {
-        // Check if the value at index i is not null
-        if (data.values[i][1] !== null) {
-            // Return the non-null value as separate variables
-            return {
-                timestamp: data.values[i][0],
-                value: data.values[i][1],
-                qualityCode: data.values[i][2]
-            };
+        
+        // Function to get current data time
+        function subtractHoursFromDate(date, hoursToSubtract) {
+            return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
         }
-    }
-    // If no non-null value is found, return null
-    return null;
-}
-
-function createTable(data) {
-    // Define the custom order for item.id
-    const customOrder = ['Illinois', 'Salt']; // Adjust this to your desired order
-
-    // Sort the data based on the custom order
-    data.sort((a, b) => {
-        return customOrder.indexOf(a.id) - customOrder.indexOf(b.id);
-    });
-
-    // Create a table element and assign it an ID
-    const table = document.createElement('table');
-    table.id = 'customers'; // Assigning the ID of "customers"
-
-    // Loop through the data
-    data.forEach(item => {
-        // Create a header row
-        const headerRow = document.createElement('tr');
-
-        // Create a header cell for item.id with colSpan = 3
-        const idHeader = document.createElement('th');
-        idHeader.colSpan = 3; // Colspan of 3
-
-        // Create a link for item.id
-        const link = document.createElement('a');
-        const url = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?basin=Mississippi&office=MVS&cwms_ts_id=${item.id}`;
-        link.href = url;
-        link.textContent = item.id;
-        link.target = '_blank'; // Open link in a new tab
-        link.style.color = 'white'; // Ensure text is readable
-        idHeader.appendChild(link);
         
-        headerRow.appendChild(idHeader);
+        // Function to convert timestamp to specified format
+        function formatNWSDate(timestamp) {
+            const date = new Date(timestamp);
+            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
+            const dd = String(date.getDate()).padStart(2, '0'); // Day
+            const yyyy = date.getFullYear(); // Year
+            const hh = String(date.getHours()).padStart(2, '0'); // Hours
+            const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
+            return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
+        }
         
-        // Append the header row to the table
-        table.appendChild(headerRow);
-
-        // Create a sub-header row for the actual column headers
-        const subHeaderRow = document.createElement('tr');
-        const headers = ['Time Series', 'Value', 'Date Time'];
-        headers.forEach(headerText => {
-            const td = document.createElement('td'); // Create a <td> element
-            td.textContent = headerText;
-            subHeaderRow.appendChild(td);
-        });
-        table.appendChild(subHeaderRow);
-
-        // Loop through assigned locations
-        item['assigned-locations'].forEach(location => {
-            // Loop through all keys in location to find last-values
-            Object.keys(location).forEach(key => {
-                if (key.endsWith('-last-value')) {
-                    const lastValue = location[key];
-                    const apiKey = key.replace('-last-value', '-api-data');
-                    const apiData = location[apiKey];
-
-                    // Create a new table row
-                    const lastValueRow = document.createElement('tr');
-                    
-                    // Check if lastValue is not null
-                    if (lastValue) {
-                        lastValueRow.innerHTML = `
-                            <td>${apiData.name}</td>
-                            <td>${lastValue.value !== null ? lastValue.value.toFixed(2) : 'Outage'}</td>
-                            <td>${lastValue.timestamp}</td>
-                        `;
-                    } else {
-                        // Add row for null last value
-                        lastValueRow.innerHTML = `
-                            <td>${apiData.name}</td>
-                            <td class="blinking-text">Outage</td>
-                            <td class="blinking-text">Outage</td>
-                        `;
-                    }
-                    table.appendChild(lastValueRow);
+        // Function to reorder based on attribute
+        const reorderByAttribute = (data) => {
+            data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
+        };
+        
+        // Function to format time to get 6am
+        const formatTime = (date) => {
+            const pad = (num) => (num < 10 ? '0' + num : num);
+            return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        };
+        
+        // Function to get 6am, 5am and 7am
+        const findValuesAtTimes = (data) => {
+            const result = [];
+            const currentDate = new Date();
+        
+            // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
+            const timesToCheck = [
+                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
+                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
+                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
+            ];
+        
+            const foundValues = [];
+        
+            // Iterate over the values in the provided data
+            const values = data.values;
+        
+            // Check for each time in the order of preference
+            timesToCheck.forEach((time) => {
+                // Format the date-time to match the format in the data
+                const formattedTime = formatTime(time);
+        
+                const entry = values.find(v => v[0] === formattedTime);
+                if (entry) {
+                    foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
+                } else {
+                    foundValues.push({ time: formattedTime, value: null }); // Store null if not found
                 }
             });
-        });
-    });
-
-    // Return the constructed table
-    return table;
-}
+        
+            // Push the result for this data entry
+            result.push({
+                name: data.name,
+                values: foundValues // This will contain the array of { time, value } objects
+            });
+        
+            return result;
+        };
+        
+        // Function to extract the am value for table
+        function getValidValue(values) {
+            // Get the first non-null value from the values array
+            const validValue = values.find(valueEntry => valueEntry.value !== null);
+            return validValue ? (validValue.value).toFixed(1) : 'N/A';
+        }
+        
+        // Function to get the last non null value from values array
+        function getLastNonNullValue(data) {
+            // Iterate over the values array in reverse
+            for (let i = data.values.length - 1; i >= 0; i--) {
+                // Check if the value at index i is not null
+                if (data.values[i][1] !== null) {
+                    // Return the non-null value as separate variables
+                    return {
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
+                }
+            }
+            // If no non-null value is found, return null
+            return null;
+        }
+        
+        function createTable(data) {
+            // Define the custom order for item.id
+            const customOrder = ['Illinois', 'Salt']; // Adjust this to your desired order
+        
+            // Sort the data based on the custom order
+            data.sort((a, b) => {
+                return customOrder.indexOf(a.id) - customOrder.indexOf(b.id);
+            });
+        
+            // Create a table element and assign it an ID
+            const table = document.createElement('table');
+            table.id = 'customers'; // Assigning the ID of "customers"
+        
+            // Loop through the data
+            data.forEach(item => {
+                // Create a header row
+                const headerRow = document.createElement('tr');
+        
+                // Create a header cell for item.id with colSpan = 3
+                const idHeader = document.createElement('th');
+                idHeader.colSpan = 3; // Colspan of 3
+                // Apply styles
+                idHeader.style.backgroundColor = 'darkblue';
+                idHeader.style.color = 'lightgray';
+        
+                // Create a link for item.id
+                const link = document.createElement('a');
+                const url = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?basin=Mississippi&office=MVS&cwms_ts_id=${item.id}`;
+                link.href = url;
+                link.textContent = item.id;
+                link.target = '_blank'; // Open link in a new tab
+                link.style.color = 'white'; // Ensure text is readable
+                idHeader.appendChild(link);
+                
+                headerRow.appendChild(idHeader);
+                
+                // Append the header row to the table
+                table.appendChild(headerRow);
+        
+                // Create a sub-header row for the actual column headers
+                const subHeaderRow = document.createElement('tr');
+                const headers = ['Time Series', 'Value', 'Date Time'];
+                headers.forEach(headerText => {
+                    const td = document.createElement('td'); // Create a <td> element
+                    td.textContent = headerText;
+                    subHeaderRow.appendChild(td);
+                });
+                table.appendChild(subHeaderRow);
+        
+                // Loop through assigned locations
+                item['assigned-locations'].forEach(location => {
+                    // Loop through all keys in location to find last-values
+                    Object.keys(location).forEach(key => {
+                        if (key.endsWith('-last-value')) {
+                            const lastValue = location[key];
+                            const apiKey = key.replace('-last-value', '-api-data');
+                            const apiData = location[apiKey];
+        
+                            // Create a new table row
+                            const lastValueRow = document.createElement('tr');
+                            
+                            // Check if lastValue is not null
+                            if (lastValue) {
+                                // lastValueRow.innerHTML = `
+                                //     <td>${apiData.name}</td>
+                                //     <td>${lastValue.value !== null ? lastValue.value.toFixed(2) : 'Outage'}</td>
+                                //     <td>${lastValue.timestamp}</td>
+                                // `;
+                            } else {
+                                // Add row for null last value
+                                lastValueRow.innerHTML = `
+                                    <td>${apiData.name}</td>
+                                    <td class="blinking-text">Outage</td>
+                                    <td class="blinking-text">Outage</td>
+                                `;
+                            }
+                            table.appendChild(lastValueRow);
+                        }
+                    });
+                });
+            });
+        
+            // Return the constructed table
+            return table;
+        }
+});
