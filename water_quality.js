@@ -9,14 +9,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log("apiUrl: ", apiUrl);
 
     const tsidTempWaterMap = new Map();
-    const tsidTempAirMap = new Map();
     const metadataMap = new Map();
     const tsidDepthMap = new Map();
     const tsidExtentsMap = new Map();
 
     const metadataPromises = [];
     const tempWaterTsidPromises = [];
-    const tempAirTsidPromises = [];
     const depthTsidPromises = [];
     const extentsTsidPromises = [];
 
@@ -253,14 +251,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     latestTime: matchingEntry.extents[0]?.['latest-time'],
                                                     tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
                                                 };
-                                                console.log({locData})
-                                                let extent_key = tsid.includes('Depth')?'depth': 'temp-water'
+                                                console.log({ locData })
+                                                let extent_key = tsid.includes('Depth') ? 'depth' : 'temp-water'
                                                 // locData['tsid-extens-data']['temp-water'][0]
                                                 if (!locData[`tsid-extents-data`][extent_key])
-                                                    locData[`tsid-extents-data`][extent_key] = [_data] 
+                                                    locData[`tsid-extents-data`][extent_key] = [_data]
                                                 else
-                                                locData[`tsid-extents-data`][extent_key].push(_data)
-                                            
+                                                    locData[`tsid-extents-data`][extent_key].push(_data)
+
                                             } else {
                                                 console.warn(`No matching entry found for TSID: ${tsid}`);
                                             }
@@ -467,16 +465,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const _value = location["tsid-extents-data"][key]
 
                 _value.map((value, idx) => {
-                        // Create a new table row
-                    const lastValueRow =  document.createElement('tr');
+                    // Create a new table row
+                    const lastValueRow = document.createElement('tr');
                     // Add row for null last value
                     lastValueRow.innerHTML = `
                             <td>${value.name}</td>
-                            <td>${location[`${key}-tsid-${idx}-last-value`]?.toFixed(2) }</td>
-                            <td class="${!value?.latestTime ? "blinking-text": ""}">${value?.latestTime ? value.latestTime : "Outage"}</td>
+                            <td>${location[`${key}-tsid-${idx}-last-value`]?.toFixed(2)}</td>
+                            <td class="${!value?.latestTime ? "blinking-text" : ""}">${value?.latestTime ? value.latestTime : "Outage"}</td>
                         `;
                     table.appendChild(lastValueRow);
-                    })
+                })
             })
             /*
                         // Loop through assigned locations
