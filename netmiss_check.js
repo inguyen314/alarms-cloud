@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
                     // Create a link for stageValue
                     const stageLink = document.createElement('a');
-                    stageLink.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=96`; // URL with location name
+                    stageLink.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=4`; // URL with location name
                     stageLink.textContent = stageValue; // Displayed text
                     stageLink.target = '_blank'; // Opens link in a new tab
         

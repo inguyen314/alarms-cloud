@@ -467,67 +467,59 @@ function createTable(data) {
             const tempWaterData = location[`extents-data`]?.['temp-water'];
             const depthData = location[`extents-data`]?.['depth'];
 
-            // Handling temp-water data
-            if (tempWaterData) {
-                console.log(`Location: ${location['location-id']}`);
-                tempWaterData.forEach(tempData => {
-                    console.log(`Name: ${tempData.name}, Latest Time: ${tempData.latestTime}`);
+            // Extract last values for temp-water
+            const lastTempWaterValues = tempWaterData?.map(data => ({
+                name: data.name,
+                latestTime: data.latestTime,
+                lastValue: location[`temp-water-last-value`].find(last => last.name === data.name)?.value || 'N/A'
+            })) || [];
 
-                    const dataRow = document.createElement('tr');
+            // Extract last values for depth
+            const lastDepthValues = depthData?.map(data => ({
+                name: data.name,
+                latestTime: data.latestTime,
+                lastValue: location[`depth-last-value`].find(last => last.name === data.name)?.value || 'N/A'
+            })) || [];
 
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = tempData.name; // Column 1: Name from extents data
+            // Create rows for temp-water
+            lastTempWaterValues.forEach(tempData => {
+                const dataRow = document.createElement('tr');
 
-                    const lastValueCell = document.createElement('td');
-                    const lastValue = 999; // Replace this with the actual last value from tempData
-                    lastValueCell.textContent = lastValue; // Column 2: Last value
+                const nameCell = document.createElement('td');
+                nameCell.textContent = tempData.name; // Column 1: Name from extents data
 
-                    const latestTimeCell = document.createElement('td');
-                    latestTimeCell.textContent = tempData.latestTime; // Column 3: Latest Time from extents data
+                const lastValueCell = document.createElement('td');
+                lastValueCell.textContent = tempData.lastValue; // Column 2: Last value
 
-                    dataRow.appendChild(nameCell);
-                    dataRow.appendChild(lastValueCell);
-                    dataRow.appendChild(latestTimeCell);
-                    table.appendChild(dataRow);
-                });
-            } else {
-                console.error('Temp-water data is not available for this location');
-            }
+                const latestTimeCell = document.createElement('td');
+                latestTimeCell.textContent = tempData.latestTime; // Column 3: Latest Time from extents data
 
-            // Handling depth data
-            if (depthData) {
-                console.log(`Location: ${location['location-id']}`);
-                depthData.forEach(depthItem => {
-                    console.log(`Name: ${depthItem.name}, Latest Time: ${depthItem.latestTime}`);
+                dataRow.appendChild(nameCell);
+                dataRow.appendChild(lastValueCell);
+                dataRow.appendChild(latestTimeCell);
+                table.appendChild(dataRow);
+            });
 
-                    const dataRow = document.createElement('tr');
+            // Create rows for depth
+            lastDepthValues.forEach(depthData => {
+                const dataRow = document.createElement('tr');
 
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = depthItem.name; // Column 1: Name from depth data
+                const nameCell = document.createElement('td');
+                nameCell.textContent = depthData.name; // Column 1: Name from extents data
 
-                    const lastValueCell = document.createElement('td');
-                    const lastValue = 999; // Replace this with the actual last value from depthItem
-                    lastValueCell.textContent = lastValue; // Column 2: Last value
+                const lastValueCell = document.createElement('td');
+                lastValueCell.textContent = depthData.lastValue; // Column 2: Last value
 
-                    const latestTimeCell = document.createElement('td');
-                    latestTimeCell.textContent = depthItem.latestTime; // Column 3: Latest Time from depth data
+                const latestTimeCell = document.createElement('td');
+                latestTimeCell.textContent = depthData.latestTime; // Column 3: Latest Time from extents data
 
-                    dataRow.appendChild(nameCell);
-                    dataRow.appendChild(lastValueCell);
-                    dataRow.appendChild(latestTimeCell);
-                    table.appendChild(dataRow);
-                });
-            } else {
-                console.error('Depth data is not available for this location');
-            }
+                dataRow.appendChild(nameCell);
+                dataRow.appendChild(lastValueCell);
+                dataRow.appendChild(latestTimeCell);
+                table.appendChild(dataRow);
+            });
         });
     });
 
     return table;
 }
-
-
-
-
-
-
