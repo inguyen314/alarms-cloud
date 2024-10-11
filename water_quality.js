@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Get current date and time
     const currentDateTime = new Date();
     // Subtract thirty hours from current date and time
-    const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 2);
+    const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 12);
 
     fetch(apiUrl)
         .then(response => {
@@ -477,7 +477,12 @@ function createTable(data) {
                 nameCell.textContent = tsid;
 
                 const lastValueCell = document.createElement('td');
-                lastValueCell.textContent = value;
+                
+                // Wrap the value in a span with the blinking-text class
+                const valueSpan = document.createElement('span');
+                valueSpan.classList.add('blinking-text');
+                valueSpan.textContent = value;
+                lastValueCell.appendChild(valueSpan);
 
                 const latestTimeCell = document.createElement('td');
                 latestTimeCell.textContent = timestamp;
@@ -505,15 +510,11 @@ function createTable(data) {
                     // Format lastTempValue to two decimal places
                     lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
                     dateTime = lastTempValue.timestamp;
-                    
                 } else {
                     dateTime = tempEntry.latestTime;
                     createDataRow(tsid, lastTempValue.value, dateTime);
                 }
-
-                // createDataRow(tsid, lastTempValue.value, dateTime);
             });
-
 
             // Process depth data
             depthData.forEach(depthEntry => {
@@ -529,14 +530,12 @@ function createTable(data) {
                     // Format lastDepthValue to two decimal places
                     lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
                     dateTimeDepth = lastDepthValue.timestamp;
+                    createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
                 } else {
                     dateTimeDepth = depthEntry.latestTime;
                     createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
                 }
-
-                // createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
             });
-
 
             // If no data available for both temp-water and depth
             if (tempWaterData.length === 0 && depthData.length === 0) {
