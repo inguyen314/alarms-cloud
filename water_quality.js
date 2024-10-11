@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     const apiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/location/group?office=${office}&include-assigned=false&location-category-like=${category}`;
     console.log("apiUrl: ", apiUrl);
 
-    const tsidTempWaterMap = new Map();
     const metadataMap = new Map();
+    const tsidTempWaterMap = new Map();
     const tsidDepthMap = new Map();
     const tsidExtentsMap = new Map();
 
@@ -58,63 +58,23 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                             return response.json();
                         })
-                        .then(firstData => {
-                            console.log('firstData:', firstData);
+                        .then(getBasin => {
+                            console.log('getBasin:', getBasin);
 
-                            if (!firstData) {
+                            if (!getBasin) {
                                 console.log(`No data for basin: ${basin}`);
                                 return;
                             }
 
-                            firstData[`assigned-locations`] = firstData[`assigned-locations`].filter(location => location.attribute <= 900);
-                            firstData[`assigned-locations`].sort((a, b) => a.attribute - b.attribute);
-                            combinedData.push(firstData);
+                            getBasin[`assigned-locations`] = getBasin[`assigned-locations`].filter(location => location.attribute <= 900);
+                            getBasin[`assigned-locations`].sort((a, b) => a.attribute - b.attribute);
+                            combinedData.push(getBasin);
 
-                            if (firstData['assigned-locations']) {
-                                firstData['assigned-locations'].forEach(loc => {
+                            if (getBasin['assigned-locations']) {
+                                getBasin['assigned-locations'].forEach(loc => {
                                     console.log(loc['location-id']);
 
-                                    // Temperature Water TSID
-                                    const tsidTempWaterApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
-                                    tempWaterTsidPromises.push(
-                                        fetch(tsidTempWaterApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) return null; // Skip if not found
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(tsidTempWaterData => {
-                                                console.log('tsidTempWaterData:', tsidTempWaterData);
-                                                if (tsidTempWaterData) {
-                                                    tsidTempWaterMap.set(loc['location-id'], tsidTempWaterData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidTempWaterApiUrl}:`, error);
-                                            })
-                                    );
-
-                                    // Depth TSID
-                                    const tsidDepthApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
-                                    depthTsidPromises.push(
-                                        fetch(tsidDepthApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) return null; // Skip if not found
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(tsidDepthData => {
-                                                console.log('tsidDepthData:', tsidDepthData);
-                                                if (tsidDepthData) {
-                                                    tsidDepthMap.set(loc['location-id'], tsidDepthData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDepthApiUrl}:`, error);
-                                            })
-                                    );
-
-                                    // Metadata
+                                    // Add Metadata
                                     const locApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/locations/${loc['location-id']}?office=${office}`;
                                     metadataPromises.push(
                                         fetch(locApiUrl)
@@ -135,6 +95,46 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
                                             })
                                     );
+
+                                    // Add Temp Water
+                                    const tsidTempWaterApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
+                                    tempWaterTsidPromises.push(
+                                        fetch(tsidTempWaterApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidTempWaterData => {
+                                                // console.log('tsidTempWaterData:', tsidTempWaterData);
+                                                if (tsidTempWaterData) {
+                                                    tsidTempWaterMap.set(loc['location-id'], tsidTempWaterData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidTempWaterApiUrl}:`, error);
+                                            })
+                                    );
+
+                                    // Depth TSID
+                                    const tsidDepthApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
+                                    depthTsidPromises.push(
+                                        fetch(tsidDepthApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidDepthData => {
+                                                // console.log('tsidDepthData:', tsidDepthData);
+                                                if (tsidDepthData) {
+                                                    tsidDepthMap.set(loc['location-id'], tsidDepthData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDepthApiUrl}:`, error);
+                                            })
+                                    );
                                 });
                             }
                         })
@@ -145,30 +145,43 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
 
             Promise.all(apiPromises)
+                .then(() => Promise.all(metadataPromises))
                 .then(() => Promise.all(tempWaterTsidPromises))
                 .then(() => Promise.all(depthTsidPromises))
-                .then(() => Promise.all(metadataPromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
-                                const tsidTempWaterMapData = tsidTempWaterMap.get(loc['location-id']);
-                                console.log('tsidTempWaterMapData:', tsidTempWaterMapData);
-                                if (tsidTempWaterMapData) {
-                                    reorderByAttribute(tsidTempWaterMapData);
-                                    loc['tsid-temp-water'] = tsidTempWaterMapData;
-                                }
-
-                                const tsidDepthMapData = tsidDepthMap.get(loc['location-id']);
-                                console.log('tsidDepthMapData:', tsidDepthMapData);
-                                if (tsidDepthMapData) {
-                                    loc['tsid-depth'] = tsidDepthMapData;
-                                }
-
+                                // Add metadata to json
                                 const metadataMapData = metadataMap.get(loc['location-id']);
                                 if (metadataMapData) {
                                     loc['metadata'] = metadataMapData;
                                 }
+
+                                // Add temp-water to json
+                                const tsidTempWaterMapData = tsidTempWaterMap.get(loc['location-id']);
+                                if (tsidTempWaterMapData) {
+                                    reorderByAttribute(tsidTempWaterMapData);
+                                    loc['tsid-temp-water'] = tsidTempWaterMapData;
+                                } else {
+                                    loc['tsid-temp-water'] = null;  // Append null if tsidTempWaterMapData is missing
+                                }
+
+
+                                // Add depth to json
+                                const tsidDepthMapData = tsidDepthMap.get(loc['location-id']);
+                                if (tsidDepthMapData) {
+                                    loc['tsid-depth'] = tsidDepthMapData;
+                                } else {
+                                    loc['tsid-depth'] = null;  // Append null if tsidDepthMapData is missing
+                                }
+
+
+                                // Initialize the new arrays
+                                loc['temp-water-api-data'] = [];
+                                loc['temp-water-last-value'] = [];
+                                loc['depth-api-data'] = [];
+                                loc['depth-last-value'] = [];
                             });
                         }
                     });
@@ -204,19 +217,34 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 });
                                             }
 
-                                            // Store the fetched data on locData
-                                            locData[`${type}tsid-${index + 1}-api-data`] = data;
-                                            locData[`${type}tsid-${index + 1}-last-value`] = getLastNonNullValue(data);
+                                            // Push the fetched data to locData['temp-water-api-data'] or locData['depth-api-data'] depending on the type
+                                            const apiDataKey = type === 'temp-water' ? 'temp-water-api-data' : 'depth-api-data';
+                                            locData[apiDataKey].push(data);
+
+                                            // Initialize the last-value array if it doesn't exist for the given type
+                                            const lastValueKey = type === 'temp-water' ? 'temp-water-last-value' : 'depth-last-value';
+                                            if (!locData[lastValueKey]) {
+                                                locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            // Get and store the last non-null value for the specific tsid
+                                            const lastValue = getLastNonNullValue(data, tsid);
+
+                                            // Push the last non-null value to the corresponding last-value array
+                                            locData[lastValueKey].push(lastValue);
+
                                         })
+
                                         .catch(error => {
                                             console.error(`Error fetching additional data for location ${locData['location-id']} with TSID ${tsid}:`, error);
                                         });
                                 });
                             };
 
+
                             // Create promises for temperature and depth time series
-                            const tempPromises = createFetchPromises(tempTimeSeries, 'temp-water-');
-                            const depthPromises = createFetchPromises(depthTimeSeries, 'depth-');
+                            const tempPromises = createFetchPromises(tempTimeSeries, 'temp-water');
+                            const depthPromises = createFetchPromises(depthTimeSeries, 'depth');
 
                             // Additional API call for extents data
                             const additionalApiCall = (type) => {
@@ -229,8 +257,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 })
                                     .then(res => res.json())
                                     .then(data => {
-                                        locData['extents-data'] = data;
-                                        locData[`tsid-extents-data`] = {}
+                                        // locData['extents-api-data'] = data;
+                                        locData[`extents-data`] = {}
 
                                         // Collect TSIDs from temp and depth time series
                                         const tempTids = tempTimeSeries.map(series => series['timeseries-id']);
@@ -239,7 +267,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                         // Iterate over all TIDs and create extents data entries
                                         allTids.forEach((tsid, index) => {
-                                            console.log("tsid:", tsid);
+                                            // console.log("tsid:", tsid);
                                             const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
                                             if (matchingEntry) {
                                                 // Construct dynamic key
@@ -251,13 +279,21 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     latestTime: matchingEntry.extents[0]?.['latest-time'],
                                                     tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
                                                 };
-                                                console.log({ locData })
-                                                let extent_key = tsid.includes('Depth') ? 'depth' : 'temp-water'
+                                                // console.log({ locData })
+                                                // Determine extent key based on tsid
+                                                let extent_key;
+                                                if (tsid.includes('Depth')) {
+                                                    extent_key = 'depth';
+                                                } else if (tsid.includes('Temp-Water')) { // Example for another condition
+                                                    extent_key = 'temp-water';
+                                                } else {
+                                                    return; // Ignore if it doesn't match either condition
+                                                }
                                                 // locData['tsid-extens-data']['temp-water'][0]
-                                                if (!locData[`tsid-extents-data`][extent_key])
-                                                    locData[`tsid-extents-data`][extent_key] = [_data]
+                                                if (!locData[`extents-data`][extent_key])
+                                                    locData[`extents-data`][extent_key] = [_data]
                                                 else
-                                                    locData[`tsid-extents-data`][extent_key].push(_data)
+                                                    locData[`extents-data`][extent_key].push(_data)
 
                                             } else {
                                                 console.warn(`No matching entry found for TSID: ${tsid}`);
@@ -274,12 +310,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         }
                     }
 
-
                     // Wait for all additional data fetches to complete
                     return Promise.all(additionalPromises);
+
                 })
                 .then(() => {
-                    console.log('All data fetched successfully:', combinedData);
+                    console.log('All combinedData data fetched successfully:', combinedData);
 
                     // Append the table to the specified container
                     const container = document.getElementById('table_container_alarm_water_quality');
@@ -292,226 +328,229 @@ document.addEventListener('DOMContentLoaded', async function () {
                     console.error('There was a problem with one or more fetch operations:', error);
                     loadingIndicator.style.display = 'none';
                 });
+
         })
         .catch(error => {
             console.error('There was a problem with the initial fetch operation:', error);
             loadingIndicator.style.display = 'none';
         });
-
-
-    function filterByLocationCategory(array, category) {
-        return array.filter(item =>
-            item['location-category'] &&
-            item['location-category']['office-id'] === category['office-id'] &&
-            item['location-category']['id'] === category['id']
-        );
-    }
-
-    // Function to get current data time
-    function subtractHoursFromDate(date, hoursToSubtract) {
-        return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-    }
-
-    // Function to convert timestamp to specified format
-    function formatNWSDate(timestamp) {
-        const date = new Date(timestamp);
-        const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
-        const dd = String(date.getDate()).padStart(2, '0'); // Day
-        const yyyy = date.getFullYear(); // Year
-        const hh = String(date.getHours()).padStart(2, '0'); // Hours
-        const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
-        return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
-    }
-
-    // Function to reorder based on attribute
-    const reorderByAttribute = (data) => {
-        data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-    };
-
-    // Function to format time to get 6am
-    const formatTime = (date) => {
-        const pad = (num) => (num < 10 ? '0' + num : num);
-        return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    };
-
-    // Function to get 6am, 5am and 7am
-    const findValuesAtTimes = (data) => {
-        const result = [];
-        const currentDate = new Date();
-
-        // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-        const timesToCheck = [
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-        ];
-
-        const foundValues = [];
-
-        // Iterate over the values in the provided data
-        const values = data.values;
-
-        // Check for each time in the order of preference
-        timesToCheck.forEach((time) => {
-            // Format the date-time to match the format in the data
-            const formattedTime = formatTime(time);
-
-            const entry = values.find(v => v[0] === formattedTime);
-            if (entry) {
-                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-            } else {
-                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-            }
-        });
-
-        // Push the result for this data entry
-        result.push({
-            name: data.name,
-            values: foundValues // This will contain the array of { time, value } objects
-        });
-
-        return result;
-    };
-
-    // Function to extract the am value for table
-    function getValidValue(values) {
-        // Get the first non-null value from the values array
-        const validValue = values.find(valueEntry => valueEntry.value !== null);
-        return validValue ? (validValue.value).toFixed(1) : 'N/A';
-    }
-
-    // Function to get the last non null value from values array
-    function getLastNonNullValue(data) {
-        // Iterate over the values array in reverse
-        for (let i = data.values.length - 1; i >= 0; i--) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Return the non-null value as separate variables
-                return {
-                    timestamp: data.values[i][0],
-                    value: data.values[i][1],
-                    qualityCode: data.values[i][2]
-                };
-            }
-        }
-        // If no non-null value is found, return null
-        return null;
-    }
-
-    const extractTimeData = (additionalData) => {
-        const extractedData = additionalData.entries.map(entry => {
-            return {
-                office: entry.office,
-                name: entry.name,
-                earliestTime: entry.extents[0]?.earliest - time,
-                lastUpdate: entry.extents[0]?.last - update,
-                latestTime: entry.extents[0]?.latest - time,
-            };
-        });
-        return extractedData;
-    };
-
-    function createTable(data) {
-        // Define the custom order for item.id
-        const customOrder = ['Illinois', 'Salt']; // Adjust this to your desired order
-
-        // Sort the data based on the custom order
-        data.sort((a, b) => {
-            return customOrder.indexOf(a.id) - customOrder.indexOf(b.id);
-        });
-
-        // Create a table element and assign it an ID
-        const table = document.createElement('table');
-        table.id = 'customers'; // Assigning the ID of "customers"
-
-        // Loop through the data
-        data.forEach(item => {
-            // Create a header row
-            const headerRow = document.createElement('tr');
-
-            // Create a header cell for item.id with colSpan = 3
-            const idHeader = document.createElement('th');
-            idHeader.colSpan = 3; // Colspan of 3
-            // Apply styles
-            idHeader.style.backgroundColor = 'darkblue';
-            idHeader.style.color = 'lightgray';
-
-            // Create a link for item.id
-            const link = document.createElement('a');
-            const url = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?basin=Mississippi&office=MVS&cwms_ts_id=${item.id}`;
-            link.href = url;
-            link.textContent = item.id;
-            link.target = '_blank'; // Open link in a new tab
-            link.style.color = 'white'; // Ensure text is readable
-            idHeader.appendChild(link);
-
-            headerRow.appendChild(idHeader);
-
-            // Append the header row to the table
-            table.appendChild(headerRow);
-
-            // Create a sub-header row for the actual column headers
-            const subHeaderRow = document.createElement('tr');
-            const headers = ['Time Series', 'Value', 'Date Time'];
-            headers.forEach(headerText => {
-                const td = document.createElement('td'); // Create a <td> element
-                td.textContent = headerText;
-                subHeaderRow.appendChild(td);
-            });
-            table.appendChild(subHeaderRow);
-            console.log(item['assigned-locations'])
-            const location = item['assigned-locations'][0]
-            Object.keys(location["tsid-extents-data"]).map(key => {
-                const _value = location["tsid-extents-data"][key]
-
-                _value.map((value, idx) => {
-                    // Create a new table row
-                    const lastValueRow = document.createElement('tr');
-                    // Add row for null last value
-                    lastValueRow.innerHTML = `
-                            <td>${value.name}</td>
-                            <td>${location[`${key}-tsid-${idx}-last-value`]?.toFixed(2)}</td>
-                            <td class="${!value?.latestTime ? "blinking-text" : ""}">${value?.latestTime ? value.latestTime : "Outage"}</td>
-                        `;
-                    table.appendChild(lastValueRow);
-                })
-            })
-            /*
-                        // Loop through assigned locations
-            item['assigned-locations'].forEach(location => {
-                // Loop through all keys in location to find last-values
-                Object.keys(location).forEach(key => {
-                    if (key.endsWith('-last-value')) {
-                        const lastValue = location[key];
-                        const apiKey = key.replace('-last-value', '-api-data');
-                        const apiData = location[apiKey];
-                        
-                        // Create a new table row
-                        const lastValueRow = document.createElement('tr');
-
-                        // Check if lastValue is not null
-                        if (lastValue) {
-                            // lastValueRow.innerHTML = `
-                            //     <td>${apiData.name}</td>
-                            //     <td>${lastValue.value !== null ? lastValue.value.toFixed(2) : 'Outage'}</td>
-                            //     <td>${lastValue.timestamp}</td>
-                            // `;
-                        } else {
-                            // Add row for null last value
-                            lastValueRow.innerHTML = `
-                                    <td>${apiData.name}</td>
-                                    <td class="blinking-text">Outage</td>
-                                    <td class="blinking-text">Outage</td>
-                                `;
-                        }
-                        table.appendChild(lastValueRow);
-                    }
-                });
-            });
-            */
-        });
-
-        // Return the constructed table
-        return table;
-    }
 });
+
+function filterByLocationCategory(array, category) {
+    return array.filter(item =>
+        item['location-category'] &&
+        item['location-category']['office-id'] === category['office-id'] &&
+        item['location-category']['id'] === category['id']
+    );
+}
+
+function subtractHoursFromDate(date, hoursToSubtract) {
+    return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
+}
+
+function formatNWSDate(timestamp) {
+    const date = new Date(timestamp);
+    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
+    const dd = String(date.getDate()).padStart(2, '0'); // Day
+    const yyyy = date.getFullYear(); // Year
+    const hh = String(date.getHours()).padStart(2, '0'); // Hours
+    const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
+    return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
+}
+
+const reorderByAttribute = (data) => {
+    data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
+};
+
+const formatTime = (date) => {
+    const pad = (num) => (num < 10 ? '0' + num : num);
+    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const findValuesAtTimes = (data) => {
+    const result = [];
+    const currentDate = new Date();
+
+    // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
+    const timesToCheck = [
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
+    ];
+
+    const foundValues = [];
+
+    // Iterate over the values in the provided data
+    const values = data.values;
+
+    // Check for each time in the order of preference
+    timesToCheck.forEach((time) => {
+        // Format the date-time to match the format in the data
+        const formattedTime = formatTime(time);
+
+        const entry = values.find(v => v[0] === formattedTime);
+        if (entry) {
+            foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
+        } else {
+            foundValues.push({ time: formattedTime, value: null }); // Store null if not found
+        }
+    });
+
+    // Push the result for this data entry
+    result.push({
+        name: data.name,
+        values: foundValues // This will contain the array of { time, value } objects
+    });
+
+    return result;
+};
+
+function getValidValue(values) {
+    // Get the first non-null value from the values array
+    const validValue = values.find(valueEntry => valueEntry.value !== null);
+    return validValue ? (validValue.value).toFixed(1) : 'N/A';
+}
+
+function getLastNonNullValue(data, tsid) {
+    // Iterate over the values array in reverse
+    for (let i = data.values.length - 1; i >= 0; i--) {
+        // Check if the value at index i is not null
+        if (data.values[i][1] !== null) {
+            // Return the non-null value as separate variables
+            return {
+                tsid: tsid,
+                timestamp: data.values[i][0],
+                value: data.values[i][1],
+                qualityCode: data.values[i][2]
+            };
+        }
+    }
+    // If no non-null value is found, return null
+    return null;
+}
+
+const extractTimeData = (additionalData) => {
+    const extractedData = additionalData.entries.map(entry => {
+        return {
+            office: entry.office,
+            name: entry.name,
+            earliestTime: entry.extents[0]?.earliest - time,
+            lastUpdate: entry.extents[0]?.last - update,
+            latestTime: entry.extents[0]?.latest - time,
+        };
+    });
+    return extractedData;
+};
+
+function createTable(data) {
+    const table = document.createElement('table');
+    table.id = 'customers'; // Assigning the ID of "customers"
+
+    data.forEach(item => {
+        // Create header row for the item's ID
+        const headerRow = document.createElement('tr');
+        const idHeader = document.createElement('th');
+        idHeader.colSpan = 3;
+        idHeader.textContent = item.id; // Display the item's ID
+        headerRow.appendChild(idHeader);
+        table.appendChild(headerRow);
+
+        // Create subheader row for "Time Series", "Value", "Date Time"
+        const subHeaderRow = document.createElement('tr');
+        ['Time Series', 'Value', 'Date Time'].forEach(headerText => {
+            const td = document.createElement('td');
+            td.textContent = headerText;
+            subHeaderRow.appendChild(td);
+        });
+        table.appendChild(subHeaderRow);
+
+        // Process each assigned location
+        item['assigned-locations'].forEach(location => {
+            const tempWaterData = location['extents-data']?.['temp-water'] || [];
+            const depthData = location['extents-data']?.['depth'] || [];
+
+            // Function to create data row
+            const createDataRow = (tsid, value, timestamp) => {
+                const dataRow = document.createElement('tr');
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = tsid;
+
+                const lastValueCell = document.createElement('td');
+                lastValueCell.textContent = value;
+
+                const latestTimeCell = document.createElement('td');
+                latestTimeCell.textContent = timestamp;
+
+                dataRow.appendChild(nameCell);
+                dataRow.appendChild(lastValueCell);
+                dataRow.appendChild(latestTimeCell);
+
+                table.appendChild(dataRow);
+            };
+
+            // Process temperature water data
+            tempWaterData.forEach(tempEntry => {
+                const tsid = tempEntry.name; // Time-series ID from extents-data
+
+                // Safely access 'temp-water-last-value'
+                const lastTempValue = (Array.isArray(location['temp-water-last-value'])
+                    ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
+                    : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                console.log("lastTempValue: ", lastTempValue);
+
+                let dateTime = null;
+                if (lastTempValue && lastTempValue.value !== 'N/A') {
+                    // Format lastTempValue to two decimal places
+                    lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
+                    dateTime = lastTempValue.timestamp;
+                    
+                } else {
+                    dateTime = tempEntry.latestTime;
+                    createDataRow(tsid, lastTempValue.value, dateTime);
+                }
+
+                // createDataRow(tsid, lastTempValue.value, dateTime);
+            });
+
+
+            // Process depth data
+            depthData.forEach(depthEntry => {
+                const tsid = depthEntry.name; // Time-series ID from extents-data
+
+                // Safely access 'depth-last-value'
+                const lastDepthValue = (Array.isArray(location['depth-last-value'])
+                    ? location['depth-last-value'].find(entry => entry && entry.tsid === tsid)
+                    : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                let dateTimeDepth = null;
+                if (lastDepthValue && lastDepthValue.value !== 'N/A') {
+                    // Format lastDepthValue to two decimal places
+                    lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
+                    dateTimeDepth = lastDepthValue.timestamp;
+                } else {
+                    dateTimeDepth = depthEntry.latestTime;
+                    createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                }
+
+                // createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+            });
+
+
+            // If no data available for both temp-water and depth
+            if (tempWaterData.length === 0 && depthData.length === 0) {
+                const dataRow = document.createElement('tr');
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = 'No Data Available';
+                nameCell.colSpan = 3; // Span across all three columns
+
+                dataRow.appendChild(nameCell);
+                table.appendChild(dataRow);
+            }
+        });
+    });
+
+    return table;
+}
