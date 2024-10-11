@@ -11,11 +11,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     const metadataMap = new Map();
     const tsidTempWaterMap = new Map();
     const tsidDepthMap = new Map();
+    const tsidDoMap = new Map();
     const tsidExtentsMap = new Map();
 
     const metadataPromises = [];
     const tempWaterTsidPromises = [];
     const depthTsidPromises = [];
+    const doTsidPromises = [];
     const extentsTsidPromises = [];
 
     // Get current date and time
@@ -135,6 +137,27 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 console.error(`Problem with the fetch operation for stage TSID data at ${tsidDepthApiUrl}:`, error);
                                             })
                                     );
+
+                                    // Do TSID
+                                    const tsidDoApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log('tsidDoApiUrl:', tsidDoApiUrl);
+                                    doTsidPromises.push(
+                                        fetch(tsidDoApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidDoData => {
+                                                // console.log('tsidDoData:', tsidDoData);
+                                                if (tsidDoData) {
+                                                    tsidDoMap.set(loc['location-id'], tsidDoData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDoApiUrl}:`, error);
+                                            })
+                                    );
                                 });
                             }
                         })
@@ -148,6 +171,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 .then(() => Promise.all(metadataPromises))
                 .then(() => Promise.all(tempWaterTsidPromises))
                 .then(() => Promise.all(depthTsidPromises))
+                .then(() => Promise.all(doTsidPromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
@@ -177,11 +201,22 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 }
 
 
+                                // Add do to json
+                                const tsidDoMapData = tsidDoMap.get(loc['location-id']);
+                                if (tsidDoMapData) {
+                                    loc['tsid-do'] = tsidDoMapData;
+                                } else {
+                                    loc['tsid-do'] = null;  // Append null if tsidDoMapData is missing
+                                }
+
+
                                 // Initialize the new arrays
                                 loc['temp-water-api-data'] = [];
                                 loc['temp-water-last-value'] = [];
                                 loc['depth-api-data'] = [];
                                 loc['depth-last-value'] = [];
+                                loc['do-api-data'] = [];
+                                loc['do-last-value'] = [];
                             });
                         }
                     });
@@ -196,6 +231,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // Handle temperature time series
                             const tempTimeSeries = locData['tsid-temp-water']?.['assigned-time-series'] || [];
                             const depthTimeSeries = locData['tsid-depth']?.['assigned-time-series'] || [];
+                            const doTimeSeries = locData['tsid-do']?.['assigned-time-series'] || [];
 
                             // Function to create fetch promises for time series data
                             const createFetchPromises = (timeSeries, type) => {
@@ -217,15 +253,37 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 });
                                             }
 
-                                            // Push the fetched data to locData['temp-water-api-data'] or locData['depth-api-data'] depending on the type
-                                            const apiDataKey = type === 'temp-water' ? 'temp-water-api-data' : 'depth-api-data';
+                                            let apiDataKey;
+                                            if (type === 'temp-water') {
+                                                apiDataKey = 'temp-water-api-data';
+                                            } else if (type === 'depth') {
+                                                apiDataKey = 'depth-api-data';
+                                            } else if (type === 'do') {
+                                                apiDataKey = 'do-api-data'; // Assuming 'do-api-data' is the key for dissolved oxygen data
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return to avoid pushing data if type is unknown
+                                            }
+
                                             locData[apiDataKey].push(data);
 
-                                            // Initialize the last-value array if it doesn't exist for the given type
-                                            const lastValueKey = type === 'temp-water' ? 'temp-water-last-value' : 'depth-last-value';
+
+                                            let lastValueKey;
+                                            if (type === 'temp-water') {
+                                                lastValueKey = 'temp-water-last-value';
+                                            } else if (type === 'depth') {
+                                                lastValueKey = 'depth-last-value';
+                                            } else if (type === 'do') {
+                                                lastValueKey = 'do-last-value';  // Assuming 'do-last-value' is the key for dissolved oxygen last value
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
                                             if (!locData[lastValueKey]) {
                                                 locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
+
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
@@ -245,6 +303,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // Create promises for temperature and depth time series
                             const tempPromises = createFetchPromises(tempTimeSeries, 'temp-water');
                             const depthPromises = createFetchPromises(depthTimeSeries, 'depth');
+                            const doPromises = createFetchPromises(doTimeSeries, 'do');
 
                             // Additional API call for extents data
                             const additionalApiCall = (type) => {
@@ -263,7 +322,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         // Collect TSIDs from temp and depth time series
                                         const tempTids = tempTimeSeries.map(series => series['timeseries-id']);
                                         const depthTids = depthTimeSeries.map(series => series['timeseries-id']);
-                                        const allTids = [...tempTids, ...depthTids]; // Combine both arrays
+                                        const doTids = doTimeSeries.map(series => series['timeseries-id']);
+                                        const allTids = [...tempTids, ...depthTids, ...doTids]; // Combine both arrays
 
                                         // Iterate over all TIDs and create extents data entries
                                         allTids.forEach((tsid, index) => {
@@ -286,6 +346,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     extent_key = 'depth';
                                                 } else if (tsid.includes('Temp-Water')) { // Example for another condition
                                                     extent_key = 'temp-water';
+                                                } else if (tsid.includes('Conc-DO')) { // Example for another condition
+                                                    extent_key = 'do';
                                                 } else {
                                                     return; // Ignore if it doesn't match either condition
                                                 }
@@ -306,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             };
 
                             // Combine all promises for this location
-                            additionalPromises.push(Promise.all([...tempPromises, ...depthPromises, additionalApiCall()]));
+                            additionalPromises.push(Promise.all([...tempPromises, ...depthPromises, ...doPromises, additionalApiCall()]));
                         }
                     }
 
@@ -471,6 +533,7 @@ function createTable(data) {
         item['assigned-locations'].forEach(location => {
             const tempWaterData = location['extents-data']?.['temp-water'] || [];
             const depthData = location['extents-data']?.['depth'] || [];
+            const doData = location['extents-data']?.['do'] || [];
 
             // Function to create data row
             const createDataRow = (tsid, value, timestamp) => {
@@ -480,7 +543,7 @@ function createTable(data) {
                 nameCell.textContent = tsid;
 
                 const lastValueCell = document.createElement('td');
-                
+
                 // Wrap the value in a span with the blinking-text class
                 const valueSpan = document.createElement('span');
                 valueSpan.classList.add('blinking-text');
@@ -505,8 +568,6 @@ function createTable(data) {
                 const lastTempValue = (Array.isArray(location['temp-water-last-value'])
                     ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
                     : null) || { value: 'N/A', timestamp: 'N/A' };
-
-                console.log("lastTempValue: ", lastTempValue);
 
                 let dateTime = null;
                 if (lastTempValue && lastTempValue.value !== 'N/A') {
@@ -533,15 +594,37 @@ function createTable(data) {
                     // Format lastDepthValue to two decimal places
                     lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
                     dateTimeDepth = lastDepthValue.timestamp;
-                    createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                    // createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
                 } else {
                     dateTimeDepth = depthEntry.latestTime;
                     createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
                 }
             });
 
-            // If no data available for both temp-water and depth
-            if (tempWaterData.length === 0 && depthData.length === 0) {
+            // Process DO (dissolved oxygen) data
+            doData.forEach(doEntry => {
+                const tsid = doEntry.name; // Time-series ID from extents-data
+
+                // Safely access 'do-last-value'
+                const lastDoValue = (Array.isArray(location['do-last-value'])
+                    ? location['do-last-value'].find(entry => entry && entry.tsid === tsid)
+                    : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                let dateTimeDo = null;
+                if (lastDoValue && lastDoValue.value !== 'N/A') {
+                    // Format lastDoValue to two decimal places
+                    lastDoValue.value = parseFloat(lastDoValue.value).toFixed(2);
+                    dateTimeDo = lastDoValue.timestamp;
+                    // createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                } else {
+                    dateTimeDo = doEntry.latestTime;
+                    createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                }
+            });
+
+
+            // If no data available for temp-water, depth, and do
+            if (tempWaterData.length === 0 && depthData.length === 0 && doData.length === 0) {
                 const dataRow = document.createElement('tr');
 
                 const nameCell = document.createElement('td');
@@ -551,6 +634,7 @@ function createTable(data) {
                 dataRow.appendChild(nameCell);
                 table.appendChild(dataRow);
             }
+
         });
     });
 
