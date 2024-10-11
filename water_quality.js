@@ -1,32 +1,34 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    // Display the loading indicator
-    const loadingIndicator = document.getElementById('loading_alarm_water_quality'); // *** change here ***
-    loadingIndicator.style.display = 'block';
+    // Display the loading indicator for water quality alarm
+    const loadingIndicator = document.getElementById('loading_alarm_water_quality');
+    loadingIndicator.style.display = 'block'; // Show the loading indicator
 
-    // *** change here ***
+    // Set the category and base URL for API calls
     let setCategory = "Alarm-Water-Quality";
-
     let setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
     console.log("setBaseUrl: ", setBaseUrl);
 
+    // Define the URL to fetch location groups based on category
     const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
     console.log("categoryApiUrl: ", categoryApiUrl);
 
+    // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const metadataMap = new Map();
     const tsidTempWaterMap = new Map();
     const tsidDepthMap = new Map();
     const tsidDoMap = new Map();
 
+    // Initialize arrays for storing promises
     const metadataPromises = [];
     const tempWaterTsidPromises = [];
     const depthTsidPromises = [];
     const doTsidPromises = [];
 
-    // Get current date and time
+    // Get the current date and time, and compute a "look-back" time for historical data
     const currentDateTime = new Date();
-    // Subtract thirty hours from current date and time
-    const lookBackHours = subtractHoursFromDate(new Date(), 12);
+    const lookBackHours = subtractHoursFromDate(new Date(), 12); // Subtract 12 hours from the current time
 
+    // Fetch location group data from the API
     fetch(categoryApiUrl)
         .then(response => {
             if (!response.ok) {
@@ -40,17 +42,21 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
+            // Filter and map the returned data to basins belonging to the target category
             const targetCategory = { "office-id": office, "id": setCategory };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
+
             if (basins.length === 0) {
                 console.warn('No basins found for the given category.');
                 return;
             }
 
+            // Initialize an array to store promises for fetching basin data
             const apiPromises = [];
             const combinedData = [];
 
+            // Loop through each basin and fetch data for its assigned locations
             basins.forEach(basin => {
                 const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setCategory}`;
                 console.log("basinApiUrl: ", basinApiUrl);
@@ -71,15 +77,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 return;
                             }
 
+                            // Filter and sort assigned locations based on 'attribute' field
                             getBasin[`assigned-locations`] = getBasin[`assigned-locations`].filter(location => location.attribute <= 900);
                             getBasin[`assigned-locations`].sort((a, b) => a.attribute - b.attribute);
                             combinedData.push(getBasin);
 
+                            // If assigned locations exist, fetch metadata and time-series data
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
                                     console.log(loc['location-id']);
 
-                                    // Add Metadata
+                                    // Fetch metadata for each location
                                     const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
                                     console.log("locApiUrl: ", locApiUrl);
                                     metadataPromises.push(
@@ -102,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             })
                                     );
 
-                                    // Add Temp Water
+                                    // Fetch temperature water TSID data
                                     const tsidTempWaterApiUrl = setBaseUrl + `timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
                                     console.log("tsidTempWaterApiUrl: ", tsidTempWaterApiUrl);
                                     tempWaterTsidPromises.push(
@@ -123,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             })
                                     );
 
-                                    // Depth TSID
+                                    // Fetch depth TSID data
                                     const tsidDepthApiUrl = setBaseUrl + `timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
                                     console.log("tsidDepthApiUrl: ", tsidDepthApiUrl);
                                     depthTsidPromises.push(
@@ -144,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             })
                                     );
 
-                                    // Do TSID
+                                    // Fetch dissolved oxygen TSID data
                                     const tsidDoApiUrl = setBaseUrl + `timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
                                     console.log('tsidDoApiUrl:', tsidDoApiUrl);
                                     doTsidPromises.push(
@@ -173,6 +181,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 );
             });
 
+            // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
                 .then(() => Promise.all(metadataPromises))
                 .then(() => Promise.all(tempWaterTsidPromises))
@@ -182,6 +191,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
+                                // Add metadata, TSID, and last-value data to the location object
+
                                 // Add metadata to json
                                 const metadataMapData = metadataMap.get(loc['location-id']);
                                 if (metadataMapData) {
@@ -194,29 +205,28 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     reorderByAttribute(tsidTempWaterMapData);
                                     loc['tsid-temp-water'] = tsidTempWaterMapData;
                                 } else {
-                                    loc['tsid-temp-water'] = null;  // Append null if tsidTempWaterMapData is missing
+                                    loc['tsid-temp-water'] = null;  // Append null if missing
                                 }
-
 
                                 // Add depth to json
                                 const tsidDepthMapData = tsidDepthMap.get(loc['location-id']);
                                 if (tsidDepthMapData) {
+                                    reorderByAttribute(tsidDepthMapData);
                                     loc['tsid-depth'] = tsidDepthMapData;
                                 } else {
-                                    loc['tsid-depth'] = null;  // Append null if tsidDepthMapData is missing
+                                    loc['tsid-depth'] = null;  // Append null if missing
                                 }
-
 
                                 // Add do to json
                                 const tsidDoMapData = tsidDoMap.get(loc['location-id']);
                                 if (tsidDoMapData) {
+                                    reorderByAttribute(tsidDoMapData);
                                     loc['tsid-do'] = tsidDoMapData;
                                 } else {
-                                    loc['tsid-do'] = null;  // Append null if tsidDoMapData is missing
+                                    loc['tsid-do'] = null;  // Append null if missing
                                 }
 
-
-                                // Initialize the new arrays
+                                // Initialize empty arrays to hold API and last-value data for various parameters
                                 loc['temp-water-api-data'] = [];
                                 loc['temp-water-last-value'] = [];
                                 loc['depth-api-data'] = [];
@@ -234,7 +244,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Iterate over all arrays in combinedData
                     for (const dataArray of combinedData) {
                         for (const locData of dataArray['assigned-locations'] || []) {
-                            // Handle temperature time series
+                            // Handle temperature, depth, and DO time series
                             const tempTimeSeries = locData['tsid-temp-water']?.['assigned-time-series'] || [];
                             const depthTimeSeries = locData['tsid-depth']?.['assigned-time-series'] || [];
                             const doTimeSeries = locData['tsid-do']?.['assigned-time-series'] || [];
@@ -256,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         .then(data => {
                                             if (data.values) {
                                                 data.values.forEach(entry => {
-                                                    entry[0] = formatNWSDate(entry[0]);
+                                                    entry[0] = formatISODate2ReadableDate(entry[0]);
                                                 });
                                             }
 
@@ -307,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             };
 
 
-                            // Create promises for temperature and depth time series
+                            // Create promises for temperature, depth, and DO time series
                             const tempPromises = timeSeriesDataFetchPromises(tempTimeSeries, 'temp-water');
                             const depthPromises = timeSeriesDataFetchPromises(depthTimeSeries, 'depth');
                             const doPromises = timeSeriesDataFetchPromises(doTimeSeries, 'do');
@@ -328,13 +338,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         // locData['extents-api-data'] = data;
                                         locData[`extents-data`] = {}
 
-                                        // Collect TSIDs from temp and depth time series
+                                        // Collect TSIDs from temp, depth, and DO time series
                                         const tempTids = tempTimeSeries.map(series => series['timeseries-id']);
                                         const depthTids = depthTimeSeries.map(series => series['timeseries-id']);
                                         const doTids = doTimeSeries.map(series => series['timeseries-id']);
                                         const allTids = [...tempTids, ...depthTids, ...doTids]; // Combine both arrays
 
-                                        // Iterate over all TIDs and create extents data entries
+                                        // Iterate over all TSIDs and create extents data entries
                                         allTids.forEach((tsid, index) => {
                                             // console.log("tsid:", tsid);
                                             const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
@@ -419,7 +429,7 @@ function subtractHoursFromDate(date, hoursToSubtract) {
     return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
 }
 
-function formatNWSDate(timestamp) {
+function formatISODate2ReadableDate(timestamp) {
     const date = new Date(timestamp);
     const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
     const dd = String(date.getDate()).padStart(2, '0'); // Day
@@ -458,6 +468,7 @@ const findValuesAtTimes = (data) => {
     timesToCheck.forEach((time) => {
         // Format the date-time to match the format in the data
         const formattedTime = formatTime(time);
+        // console.log(formattedTime);
 
         const entry = values.find(v => v[0] === formattedTime);
         if (entry) {
@@ -476,12 +487,6 @@ const findValuesAtTimes = (data) => {
     return result;
 };
 
-function getValidValue(values) {
-    // Get the first non-null value from the values array
-    const validValue = values.find(valueEntry => valueEntry.value !== null);
-    return validValue ? (validValue.value).toFixed(1) : 'N/A';
-}
-
 function getLastNonNullValue(data, tsid) {
     // Iterate over the values array in reverse
     for (let i = data.values.length - 1; i >= 0; i--) {
@@ -499,19 +504,6 @@ function getLastNonNullValue(data, tsid) {
     // If no non-null value is found, return null
     return null;
 }
-
-const extractTimeData = (additionalData) => {
-    const extractedData = additionalData.entries.map(entry => {
-        return {
-            office: entry.office,
-            name: entry.name,
-            earliestTime: entry.extents[0]?.earliest - time,
-            lastUpdate: entry.extents[0]?.last - update,
-            latestTime: entry.extents[0]?.latest - time,
-        };
-    });
-    return extractedData;
-};
 
 function createTable(data) {
     const table = document.createElement('table');
