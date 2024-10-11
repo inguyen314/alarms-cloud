@@ -1,31 +1,33 @@
 document.addEventListener('DOMContentLoaded', async function () {
     // Display the loading indicator
-    const loadingIndicator = document.getElementById('loading_alarm_water_quality');
+    const loadingIndicator = document.getElementById('loading_alarm_water_quality'); // *** change here ***
     loadingIndicator.style.display = 'block';
 
-    let category = "Alarm-Water-Quality";
+    // *** change here ***
+    let setCategory = "Alarm-Water-Quality";
 
-    const apiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/location/group?office=${office}&include-assigned=false&location-category-like=${category}`;
-    console.log("apiUrl: ", apiUrl);
+    let setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+    console.log("setBaseUrl: ", setBaseUrl);
+
+    const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
+    console.log("categoryApiUrl: ", categoryApiUrl);
 
     const metadataMap = new Map();
     const tsidTempWaterMap = new Map();
     const tsidDepthMap = new Map();
     const tsidDoMap = new Map();
-    const tsidExtentsMap = new Map();
 
     const metadataPromises = [];
     const tempWaterTsidPromises = [];
     const depthTsidPromises = [];
     const doTsidPromises = [];
-    const extentsTsidPromises = [];
 
     // Get current date and time
     const currentDateTime = new Date();
     // Subtract thirty hours from current date and time
-    const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 12);
+    const lookBackHours = subtractHoursFromDate(new Date(), 12);
 
-    fetch(apiUrl)
+    fetch(categoryApiUrl)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -38,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            const targetCategory = { "office-id": office, "id": category };
+            const targetCategory = { "office-id": office, "id": setCategory };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
             if (basins.length === 0) {
@@ -50,7 +52,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             const combinedData = [];
 
             basins.forEach(basin => {
-                const basinApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/location/group/${basin}?office=${office}&category-id=${category}`;
+                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setCategory}`;
+                console.log("basinApiUrl: ", basinApiUrl);
 
                 apiPromises.push(
                     fetch(basinApiUrl)
@@ -77,7 +80,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     console.log(loc['location-id']);
 
                                     // Add Metadata
-                                    const locApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/locations/${loc['location-id']}?office=${office}`;
+                                    const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
+                                    console.log("locApiUrl: ", locApiUrl);
+
                                     metadataPromises.push(
                                         fetch(locApiUrl)
                                             .then(response => {
@@ -99,7 +104,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Add Temp Water
-                                    const tsidTempWaterApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
+                                    const tsidTempWaterApiUrl = setBaseUrl + `timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log("tsidTempWaterApiUrl: ", tsidTempWaterApiUrl);
+
                                     tempWaterTsidPromises.push(
                                         fetch(tsidTempWaterApiUrl)
                                             .then(response => {
@@ -119,7 +126,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Depth TSID
-                                    const tsidDepthApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
+                                    const tsidDepthApiUrl = setBaseUrl + `timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log("tsidDepthApiUrl: ", tsidDepthApiUrl);
+
                                     depthTsidPromises.push(
                                         fetch(tsidDepthApiUrl)
                                             .then(response => {
@@ -139,8 +148,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Do TSID
-                                    const tsidDoApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
+                                    const tsidDoApiUrl = setBaseUrl + `timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
                                     console.log('tsidDoApiUrl:', tsidDoApiUrl);
+
                                     doTsidPromises.push(
                                         fetch(tsidDoApiUrl)
                                             .then(response => {
@@ -223,7 +233,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('combinedData:', combinedData);
 
-                    const additionalPromises = [];
+                    const timeSeriesDataPromises = [];
 
                     // Iterate over all arrays in combinedData
                     for (const dataArray of combinedData) {
@@ -237,9 +247,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const createFetchPromises = (timeSeries, type) => {
                                 return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
-                                    const apiUrl = `https://coe-${office}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries?name=${tsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${lookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                                    console.log('timeSeriesDataApiUrl:', timeSeriesDataApiUrl);
 
-                                    return fetch(apiUrl, {
+                                    return fetch(timeSeriesDataApiUrl, {
                                         method: 'GET',
                                         headers: {
                                             'Accept': 'application/json;version=2'
@@ -306,9 +317,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const doPromises = createFetchPromises(doTimeSeries, 'do');
 
                             // Additional API call for extents data
-                            const additionalApiCall = (type) => {
-                                const additionalApiUrl = `https://cwms-data.usace.army.mil/cwms-data/catalog/TIMESERIES?page-size=5000&office=MVS`;
-                                return fetch(additionalApiUrl, {
+                            const timeSeriesDataExtentsApiCall = (type) => {
+                                const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}`;
+                                console.log('extentsApiUrl:', extentsApiUrl);
+
+                                return fetch(extentsApiUrl, {
                                     method: 'GET',
                                     headers: {
                                         'Accept': 'application/json;version=2'
@@ -368,12 +381,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                             };
 
                             // Combine all promises for this location
-                            additionalPromises.push(Promise.all([...tempPromises, ...depthPromises, ...doPromises, additionalApiCall()]));
+                            timeSeriesDataPromises.push(Promise.all([...tempPromises, ...depthPromises, ...doPromises, timeSeriesDataExtentsApiCall()]));
                         }
                     }
 
                     // Wait for all additional data fetches to complete
-                    return Promise.all(additionalPromises);
+                    return Promise.all(timeSeriesDataPromises);
 
                 })
                 .then(() => {
@@ -398,11 +411,11 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
 });
 
-function filterByLocationCategory(array, category) {
+function filterByLocationCategory(array, setCategory) {
     return array.filter(item =>
         item['location-category'] &&
-        item['location-category']['office-id'] === category['office-id'] &&
-        item['location-category']['id'] === category['id']
+        item['location-category']['office-id'] === setCategory['office-id'] &&
+        item['location-category']['id'] === setCategory['id']
     );
 }
 
