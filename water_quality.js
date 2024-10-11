@@ -82,7 +82,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     // Add Metadata
                                     const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
                                     console.log("locApiUrl: ", locApiUrl);
-
                                     metadataPromises.push(
                                         fetch(locApiUrl)
                                             .then(response => {
@@ -106,7 +105,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     // Add Temp Water
                                     const tsidTempWaterApiUrl = setBaseUrl + `timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
                                     console.log("tsidTempWaterApiUrl: ", tsidTempWaterApiUrl);
-
                                     tempWaterTsidPromises.push(
                                         fetch(tsidTempWaterApiUrl)
                                             .then(response => {
@@ -128,7 +126,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     // Depth TSID
                                     const tsidDepthApiUrl = setBaseUrl + `timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
                                     console.log("tsidDepthApiUrl: ", tsidDepthApiUrl);
-
                                     depthTsidPromises.push(
                                         fetch(tsidDepthApiUrl)
                                             .then(response => {
@@ -150,7 +147,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     // Do TSID
                                     const tsidDoApiUrl = setBaseUrl + `timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
                                     console.log('tsidDoApiUrl:', tsidDoApiUrl);
-
                                     doTsidPromises.push(
                                         fetch(tsidDoApiUrl)
                                             .then(response => {
@@ -244,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const doTimeSeries = locData['tsid-do']?.['assigned-time-series'] || [];
 
                             // Function to create fetch promises for time series data
-                            const createFetchPromises = (timeSeries, type) => {
+                            const timeSeriesDataFetchPromises = (timeSeries, type) => {
                                 return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
                                     const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${lookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
@@ -312,9 +308,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
                             // Create promises for temperature and depth time series
-                            const tempPromises = createFetchPromises(tempTimeSeries, 'temp-water');
-                            const depthPromises = createFetchPromises(depthTimeSeries, 'depth');
-                            const doPromises = createFetchPromises(doTimeSeries, 'do');
+                            const tempPromises = timeSeriesDataFetchPromises(tempTimeSeries, 'temp-water');
+                            const depthPromises = timeSeriesDataFetchPromises(depthTimeSeries, 'depth');
+                            const doPromises = timeSeriesDataFetchPromises(doTimeSeries, 'do');
 
                             // Additional API call for extents data
                             const timeSeriesDataExtentsApiCall = (type) => {
