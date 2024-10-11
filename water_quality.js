@@ -451,6 +451,9 @@ function createTable(data) {
         const headerRow = document.createElement('tr');
         const idHeader = document.createElement('th');
         idHeader.colSpan = 3;
+        // Apply styles
+        idHeader.style.backgroundColor = 'darkblue';
+        idHeader.style.color = 'white';
         idHeader.textContent = item.id; // Display the item's ID
         headerRow.appendChild(idHeader);
         table.appendChild(headerRow);
