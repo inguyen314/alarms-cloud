@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 })
                                     .then(res => res.json())
                                     .then(data => {
-                                        // locData['extents-api-data'] = data;
+                                        locData['extents-api-data'] = data;
                                         locData[`extents-data`] = {}
 
                                         // Collect TSIDs from temp, depth, and DO time series
@@ -523,7 +523,7 @@ function createTable(data) {
 
         // Create subheader row for "Time Series", "Value", "Date Time"
         const subHeaderRow = document.createElement('tr');
-        ['Time Series', 'Value', 'Date Time'].forEach(headerText => {
+        ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
             const td = document.createElement('td');
             td.textContent = headerText;
             subHeaderRow.appendChild(td);
@@ -577,6 +577,7 @@ function createTable(data) {
                     dateTime = lastTempValue.timestamp;
                 } else {
                     dateTime = tempEntry.latestTime;
+                    typeof(dateTime);
                     createDataRow(tsid, lastTempValue.value, dateTime);
                 }
             });
