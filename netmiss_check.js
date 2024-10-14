@@ -5,7 +5,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let category = "Netmiss-Comparison";
 
-    const apiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/location/group?office=${office}&include-assigned=false&location-category-like=${category}`;
+    let setBaseUrl = null;
+    if (cda === "internal") {
+        setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        console.log("setBaseUrl: ", setBaseUrl);
+    } else if (cda === "public") {
+        setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
+        console.log("setBaseUrl: ", setBaseUrl);
+    }
+
+    const apiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${category}`;
     // console.log("apiUrl: ", apiUrl);
 
     const netmissTsidMap = new Map();
@@ -47,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const combinedData = [];
 
             basins.forEach(basin => {
-                const basinApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/location/group/${basin}?office=${office}&category-id=${category}`;
+                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${category}`;
 
                 apiPromises.push(
                     fetch(basinApiUrl)
@@ -72,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             if (firstData['assigned-locations']) {
                                 firstData['assigned-locations'].forEach(loc => {
 
-                                    let netmissTsidApiUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries/group/Netmiss-Comparison?office=${office}&category-id=${loc['location-id']}`;
+                                    let netmissTsidApiUrl = setBaseUrl + `timeseries/group/Netmiss-Comparison?office=${office}&category-id=${loc['location-id']}`;
                                     if (netmissTsidApiUrl) {
                                         netmissTsidPromises.push(
                                             fetch(netmissTsidApiUrl)
@@ -120,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                     if ("metadata" === "metadata") {
                                         // Construct the URL for the location metadata request
-                                        let locApiUrl = `https://coe-${office.toLocaleLowerCase()}uwa04${office.toLocaleLowerCase()}.${office.toLocaleLowerCase()}.usace.army.mil:8243/${office.toLocaleLowerCase()}-data/locations/${loc['location-id']}?office=${office}`;
+                                        let locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
                                         if (locApiUrl) {
                                             // Push the fetch promise to the metadataPromises array
                                             metadataPromises.push(
@@ -187,9 +196,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                         const nwsTsid = locData[`tsid-netmiss`][`assigned-time-series`][2][`timeseries-id`];
 
                         // Example API calls for additional data (customize these URLs)
-                        const stageApiUrl = `https://coe-${office}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries?name=${stageTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
-                        const netmissApiUrl = `https://coe-${office}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries?name=${netmissTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
-                        const nwsApiUrl = `https://coe-${office}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/timeseries?name=${nwsTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                        const stageApiUrl = setBaseUrl + `timeseries?name=${stageTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                        const netmissApiUrl = setBaseUrl + `timeseries?name=${netmissTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                        const nwsApiUrl = setBaseUrl + `timeseries?name=${nwsTsid}&begin=${currentDateTimeMinus30Hours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
 
                         // Fetch additional data
                         additionalPromises.push(
@@ -282,183 +291,183 @@ document.addEventListener('DOMContentLoaded', async function () {
             loadingIndicator.style.display = 'none';
         });
 
-        function filterByLocationCategory(array, category) {
-            return array.filter(item =>
-                item['location-category'] &&
-                item['location-category']['office-id'] === category['office-id'] &&
-                item['location-category']['id'] === category['id']
-            );
-        }
-        
-        // Function to get current data time
-        function subtractHoursFromDate(date, hoursToSubtract) {
-            return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-        }
-        
-        // Function to convert timestamp to specified format
-        function formatNWSDate(timestamp) {
-            const date = new Date(timestamp);
-            const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
-            const dd = String(date.getDate()).padStart(2, '0'); // Day
-            const yyyy = date.getFullYear(); // Year
-            const hh = String(date.getHours()).padStart(2, '0'); // Hours
-            const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
-            return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
-        }
-        
-        // Function to reorder based on attribute
-        const reorderByAttribute = (data) => {
-            data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-        };
-        
-        // Function to format time to get 6am
-        const formatTime = (date) => {
-            const pad = (num) => (num < 10 ? '0' + num : num);
-            return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-        };
-        
-        // Function to get 6am, 5am and 7am
-        const findValuesAtTimes = (data) => {
-            const result = [];
-            const currentDate = new Date();
-        
-            // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-            const timesToCheck = [
-                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-                new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-            ];
-        
-            const foundValues = [];
-        
-            // Iterate over the values in the provided data
-            const values = data.values;
-        
-            // Check for each time in the order of preference
-            timesToCheck.forEach((time) => {
-                // Format the date-time to match the format in the data
-                const formattedTime = formatTime(time);
-        
-                const entry = values.find(v => v[0] === formattedTime);
-                if (entry) {
-                    foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-                } else {
-                    foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-                }
-            });
-        
-            // Push the result for this data entry
-            result.push({
-                name: data.name,
-                values: foundValues // This will contain the array of { time, value } objects
-            });
-        
-            return result;
-        };
-        
-        // Function to extract the am value for table
-        function getValidValue(values) {
-            // Get the first non-null value from the values array
-            const validValue = values.find(valueEntry => valueEntry.value !== null);
-            return validValue ? (validValue.value).toFixed(1) : 'N/A';
-        }
+    function filterByLocationCategory(array, category) {
+        return array.filter(item =>
+            item['location-category'] &&
+            item['location-category']['office-id'] === category['office-id'] &&
+            item['location-category']['id'] === category['id']
+        );
+    }
 
-        function createTable(data) {
-            const table = document.createElement('table');
-            const thead = document.createElement('thead');
-            const tbody = document.createElement('tbody');
-        
-            table.id = 'customers';
-        
-            // Create table header
-            const headerRow = document.createElement('tr');
-            const headers = ['Location', 'Stage', 'Netmiss', 'NWS'];
-            headers.forEach(headerText => {
-                const th = document.createElement('th');
-                th.textContent = headerText;
-                // Apply styles
-                th.style.backgroundColor = 'darkblue';
-                th.style.color = 'white';
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-        
-            // Populate table rows
-            data.forEach(entry => {
-                entry['assigned-locations'].forEach(location => {
-                    const row = document.createElement('tr');
-        
-                    const locationId = location["location-id"];
-                    const stageValue = getValidValue(location.stageDataPreferredTimes[0].values);
-                    const netmissValue = getValidValue(location.netmissDataPreferredTimes[0].values);
-                    const nwsValue = getValidValue(location.nwsDataPreferredTimes[0].values);
-        
-                    const netmissValueDelta = (stageValue - netmissValue).toFixed(1);
-                    const nwsValueDelta = (stageValue - nwsValue).toFixed(1);
-        
-                    // Create a link for stageValue
-                    const stageLink = document.createElement('a');
-                    stageLink.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=4`; // URL with location name
-                    stageLink.textContent = stageValue; // Displayed text
-                    stageLink.target = '_blank'; // Opens link in a new tab
-        
-                    // Set the inner HTML for the row
-                    row.innerHTML = `
+    // Function to get current data time
+    function subtractHoursFromDate(date, hoursToSubtract) {
+        return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
+    }
+
+    // Function to convert timestamp to specified format
+    function formatNWSDate(timestamp) {
+        const date = new Date(timestamp);
+        const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
+        const dd = String(date.getDate()).padStart(2, '0'); // Day
+        const yyyy = date.getFullYear(); // Year
+        const hh = String(date.getHours()).padStart(2, '0'); // Hours
+        const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
+        return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
+    }
+
+    // Function to reorder based on attribute
+    const reorderByAttribute = (data) => {
+        data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
+    };
+
+    // Function to format time to get 6am
+    const formatTime = (date) => {
+        const pad = (num) => (num < 10 ? '0' + num : num);
+        return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+
+    // Function to get 6am, 5am and 7am
+    const findValuesAtTimes = (data) => {
+        const result = [];
+        const currentDate = new Date();
+
+        // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
+        const timesToCheck = [
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
+        ];
+
+        const foundValues = [];
+
+        // Iterate over the values in the provided data
+        const values = data.values;
+
+        // Check for each time in the order of preference
+        timesToCheck.forEach((time) => {
+            // Format the date-time to match the format in the data
+            const formattedTime = formatTime(time);
+
+            const entry = values.find(v => v[0] === formattedTime);
+            if (entry) {
+                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
+            } else {
+                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
+            }
+        });
+
+        // Push the result for this data entry
+        result.push({
+            name: data.name,
+            values: foundValues // This will contain the array of { time, value } objects
+        });
+
+        return result;
+    };
+
+    // Function to extract the am value for table
+    function getValidValue(values) {
+        // Get the first non-null value from the values array
+        const validValue = values.find(valueEntry => valueEntry.value !== null);
+        return validValue ? (validValue.value).toFixed(1) : 'N/A';
+    }
+
+    function createTable(data) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        table.id = 'customers';
+
+        // Create table header
+        const headerRow = document.createElement('tr');
+        const headers = ['Location', 'Stage', 'Netmiss', 'NWS'];
+        headers.forEach(headerText => {
+            const th = document.createElement('th');
+            th.textContent = headerText;
+            // Apply styles
+            th.style.backgroundColor = 'darkblue';
+            th.style.color = 'white';
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Populate table rows
+        data.forEach(entry => {
+            entry['assigned-locations'].forEach(location => {
+                const row = document.createElement('tr');
+
+                const locationId = location["location-id"];
+                const stageValue = getValidValue(location.stageDataPreferredTimes[0].values);
+                const netmissValue = getValidValue(location.netmissDataPreferredTimes[0].values);
+                const nwsValue = getValidValue(location.nwsDataPreferredTimes[0].values);
+
+                const netmissValueDelta = (stageValue - netmissValue).toFixed(1);
+                const nwsValueDelta = (stageValue - nwsValue).toFixed(1);
+
+                // Create a link for stageValue
+                const stageLink = document.createElement('a');
+                stageLink.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=4`; // URL with location name
+                stageLink.textContent = stageValue; // Displayed text
+                stageLink.target = '_blank'; // Opens link in a new tab
+
+                // Set the inner HTML for the row
+                row.innerHTML = `
                         <td>${locationId}</td>
                         <td></td>
                         <td>${netmissValue} (${netmissValueDelta})</td>
                         <td>${nwsValue} (${nwsValueDelta})</td>
                     `;
-        
-                    // Append the link to the second cell (stage column)
-                    row.cells[1].appendChild(stageLink);
-        
-                    // Apply styles based on netmissValueDelta
-                    if (Math.abs(netmissValueDelta) > 0.49) {
-                        row.cells[2].style.backgroundColor = "purple";
-                        row.cells[2].style.color = "lightgray";
-                    } else if (netmissValueDelta >= 0.25) {
-                        row.cells[2].style.backgroundColor = "pink";
-                    } else if (netmissValueDelta <= -0.25) {
-                        row.cells[2].style.backgroundColor = "DodgerBlue";
-                    } else {
-                        row.cells[2].style.backgroundColor = "MediumSeaGreen";
-                    }
-        
-                    // Apply styles based on nwsValueDelta
-                    if (Math.abs(nwsValueDelta) > 0.49) {
-                        row.cells[3].style.backgroundColor = "purple";
-                        row.cells[3].style.color = "lightgray";
-                    } else if (nwsValueDelta >= 0.25) {
-                        row.cells[3].style.backgroundColor = "pink";
-                    } else if (nwsValueDelta <= -0.25) {
-                        row.cells[3].style.backgroundColor = "DodgerBlue";
-                    } else {
-                        row.cells[3].style.backgroundColor = "MediumSeaGreen";
-                    }
-        
-                    tbody.appendChild(row);
-                });
+
+                // Append the link to the second cell (stage column)
+                row.cells[1].appendChild(stageLink);
+
+                // Apply styles based on netmissValueDelta
+                if (Math.abs(netmissValueDelta) > 0.49) {
+                    row.cells[2].style.backgroundColor = "purple";
+                    row.cells[2].style.color = "lightgray";
+                } else if (netmissValueDelta >= 0.25) {
+                    row.cells[2].style.backgroundColor = "pink";
+                } else if (netmissValueDelta <= -0.25) {
+                    row.cells[2].style.backgroundColor = "DodgerBlue";
+                } else {
+                    row.cells[2].style.backgroundColor = "MediumSeaGreen";
+                }
+
+                // Apply styles based on nwsValueDelta
+                if (Math.abs(nwsValueDelta) > 0.49) {
+                    row.cells[3].style.backgroundColor = "purple";
+                    row.cells[3].style.color = "lightgray";
+                } else if (nwsValueDelta >= 0.25) {
+                    row.cells[3].style.backgroundColor = "pink";
+                } else if (nwsValueDelta <= -0.25) {
+                    row.cells[3].style.backgroundColor = "DodgerBlue";
+                } else {
+                    row.cells[3].style.backgroundColor = "MediumSeaGreen";
+                }
+
+                tbody.appendChild(row);
             });
-        
-            table.appendChild(tbody);
-        
-            // Set widths for columns
-            const columnWidths = ['40%', '20%', '20%', '20%'];
-        
-            // Set the width for header cells
-            Array.from(table.getElementsByTagName('th')).forEach((th, index) => {
-                th.style.width = columnWidths[index];
-            });
-        
-            // Set the width for body cells
-            Array.from(table.getElementsByTagName('td')).forEach((td, index) => {
-                td.style.width = columnWidths[index % columnWidths.length]; // Use modulus to cycle through widths
-            });
-        
-            return table;
-        }
+        });
+
+        table.appendChild(tbody);
+
+        // Set widths for columns
+        const columnWidths = ['40%', '20%', '20%', '20%'];
+
+        // Set the width for header cells
+        Array.from(table.getElementsByTagName('th')).forEach((th, index) => {
+            th.style.width = columnWidths[index];
+        });
+
+        // Set the width for body cells
+        Array.from(table.getElementsByTagName('td')).forEach((td, index) => {
+            td.style.width = columnWidths[index % columnWidths.length]; // Use modulus to cycle through widths
+        });
+
+        return table;
+    }
 });
 
 

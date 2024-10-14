@@ -5,8 +5,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Set the category and base URL for API calls
     let setCategory = "Alarm-Water-Quality";
-    let setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
-    console.log("setBaseUrl: ", setBaseUrl);
+    
+    let setBaseUrl = null;
+    if (cda === "internal") {
+        setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        console.log("setBaseUrl: ", setBaseUrl);
+    } else if (cda === "public") {
+        setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
+        console.log("setBaseUrl: ", setBaseUrl);
+    }
 
     // Define the URL to fetch location groups based on category
     const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
