@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Set the category and base URL for API calls
     let setCategory = "Alarm-Water-Quality";
-    
+
     let setBaseUrl = null;
     if (cda === "internal") {
         setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
@@ -422,230 +422,230 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.error('There was a problem with the initial fetch operation:', error);
             loadingIndicator.style.display = 'none';
         });
-});
 
-function filterByLocationCategory(array, setCategory) {
-    return array.filter(item =>
-        item['location-category'] &&
-        item['location-category']['office-id'] === setCategory['office-id'] &&
-        item['location-category']['id'] === setCategory['id']
-    );
-}
-
-function subtractHoursFromDate(date, hoursToSubtract) {
-    return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-}
-
-function formatISODate2ReadableDate(timestamp) {
-    const date = new Date(timestamp);
-    const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
-    const dd = String(date.getDate()).padStart(2, '0'); // Day
-    const yyyy = date.getFullYear(); // Year
-    const hh = String(date.getHours()).padStart(2, '0'); // Hours
-    const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
-    return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
-}
-
-const reorderByAttribute = (data) => {
-    data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-};
-
-const formatTime = (date) => {
-    const pad = (num) => (num < 10 ? '0' + num : num);
-    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-const findValuesAtTimes = (data) => {
-    const result = [];
-    const currentDate = new Date();
-
-    // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-    const timesToCheck = [
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-        new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-    ];
-
-    const foundValues = [];
-
-    // Iterate over the values in the provided data
-    const values = data.values;
-
-    // Check for each time in the order of preference
-    timesToCheck.forEach((time) => {
-        // Format the date-time to match the format in the data
-        const formattedTime = formatTime(time);
-        // console.log(formattedTime);
-
-        const entry = values.find(v => v[0] === formattedTime);
-        if (entry) {
-            foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-        } else {
-            foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-        }
-    });
-
-    // Push the result for this data entry
-    result.push({
-        name: data.name,
-        values: foundValues // This will contain the array of { time, value } objects
-    });
-
-    return result;
-};
-
-function getLastNonNullValue(data, tsid) {
-    // Iterate over the values array in reverse
-    for (let i = data.values.length - 1; i >= 0; i--) {
-        // Check if the value at index i is not null
-        if (data.values[i][1] !== null) {
-            // Return the non-null value as separate variables
-            return {
-                tsid: tsid,
-                timestamp: data.values[i][0],
-                value: data.values[i][1],
-                qualityCode: data.values[i][2]
-            };
-        }
+    function filterByLocationCategory(array, setCategory) {
+        return array.filter(item =>
+            item['location-category'] &&
+            item['location-category']['office-id'] === setCategory['office-id'] &&
+            item['location-category']['id'] === setCategory['id']
+        );
     }
-    // If no non-null value is found, return null
-    return null;
-}
 
-function createTable(data) {
-    const table = document.createElement('table');
-    table.id = 'customers'; // Assigning the ID of "customers"
+    function subtractHoursFromDate(date, hoursToSubtract) {
+        return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
+    }
 
-    data.forEach(item => {
-        // Create header row for the item's ID
-        const headerRow = document.createElement('tr');
-        const idHeader = document.createElement('th');
-        idHeader.colSpan = 3;
-        // Apply styles
-        idHeader.style.backgroundColor = 'darkblue';
-        idHeader.style.color = 'white';
-        idHeader.textContent = item.id; // Display the item's ID
-        headerRow.appendChild(idHeader);
-        table.appendChild(headerRow);
+    function formatISODate2ReadableDate(timestamp) {
+        const date = new Date(timestamp);
+        const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
+        const dd = String(date.getDate()).padStart(2, '0'); // Day
+        const yyyy = date.getFullYear(); // Year
+        const hh = String(date.getHours()).padStart(2, '0'); // Hours
+        const min = String(date.getMinutes()).padStart(2, '0'); // Minutes
+        return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
+    }
 
-        // Create subheader row for "Time Series", "Value", "Date Time"
-        const subHeaderRow = document.createElement('tr');
-        ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
-            const td = document.createElement('td');
-            td.textContent = headerText;
-            subHeaderRow.appendChild(td);
-        });
-        table.appendChild(subHeaderRow);
+    const reorderByAttribute = (data) => {
+        data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
+    };
 
-        // Process each assigned location
-        item['assigned-locations'].forEach(location => {
-            const tempWaterData = location['extents-data']?.['temp-water'] || [];
-            const depthData = location['extents-data']?.['depth'] || [];
-            const doData = location['extents-data']?.['do'] || [];
+    const formatTime = (date) => {
+        const pad = (num) => (num < 10 ? '0' + num : num);
+        return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
 
-            // Function to create data row
-            const createDataRow = (tsid, value, timestamp) => {
-                const dataRow = document.createElement('tr');
+    const findValuesAtTimes = (data) => {
+        const result = [];
+        const currentDate = new Date();
 
-                const nameCell = document.createElement('td');
-                nameCell.textContent = tsid;
+        // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
+        const timesToCheck = [
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
+        ];
 
-                const lastValueCell = document.createElement('td');
+        const foundValues = [];
 
-                // Wrap the value in a span with the blinking-text class
-                const valueSpan = document.createElement('span');
-                valueSpan.classList.add('blinking-text');
-                valueSpan.textContent = value;
-                lastValueCell.appendChild(valueSpan);
+        // Iterate over the values in the provided data
+        const values = data.values;
 
-                const latestTimeCell = document.createElement('td');
-                latestTimeCell.textContent = timestamp;
+        // Check for each time in the order of preference
+        timesToCheck.forEach((time) => {
+            // Format the date-time to match the format in the data
+            const formattedTime = formatTime(time);
+            // console.log(formattedTime);
 
-                dataRow.appendChild(nameCell);
-                dataRow.appendChild(lastValueCell);
-                dataRow.appendChild(latestTimeCell);
-
-                table.appendChild(dataRow);
-            };
-
-            // Process temperature water data
-            tempWaterData.forEach(tempEntry => {
-                const tsid = tempEntry.name; // Time-series ID from extents-data
-
-                // Safely access 'temp-water-last-value'
-                const lastTempValue = (Array.isArray(location['temp-water-last-value'])
-                    ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
-                    : null) || { value: 'N/A', timestamp: 'N/A' };
-
-                let dateTime = null;
-                if (lastTempValue && lastTempValue.value !== 'N/A') {
-                    // Format lastTempValue to two decimal places
-                    lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
-                    dateTime = lastTempValue.timestamp;
-                } else {
-                    dateTime = tempEntry.latestTime;
-                    typeof(dateTime);
-                    createDataRow(tsid, lastTempValue.value, dateTime);
-                }
-            });
-
-            // Process depth data
-            depthData.forEach(depthEntry => {
-                const tsid = depthEntry.name; // Time-series ID from extents-data
-
-                // Safely access 'depth-last-value'
-                const lastDepthValue = (Array.isArray(location['depth-last-value'])
-                    ? location['depth-last-value'].find(entry => entry && entry.tsid === tsid)
-                    : null) || { value: 'N/A', timestamp: 'N/A' };
-
-                let dateTimeDepth = null;
-                if (lastDepthValue && lastDepthValue.value !== 'N/A') {
-                    // Format lastDepthValue to two decimal places
-                    lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
-                    dateTimeDepth = lastDepthValue.timestamp;
-                    // createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
-                } else {
-                    dateTimeDepth = depthEntry.latestTime;
-                    createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
-                }
-            });
-
-            // Process DO (dissolved oxygen) data
-            doData.forEach(doEntry => {
-                const tsid = doEntry.name; // Time-series ID from extents-data
-
-                // Safely access 'do-last-value'
-                const lastDoValue = (Array.isArray(location['do-last-value'])
-                    ? location['do-last-value'].find(entry => entry && entry.tsid === tsid)
-                    : null) || { value: 'N/A', timestamp: 'N/A' };
-
-                let dateTimeDo = null;
-                if (lastDoValue && lastDoValue.value !== 'N/A') {
-                    // Format lastDoValue to two decimal places
-                    lastDoValue.value = parseFloat(lastDoValue.value).toFixed(2);
-                    dateTimeDo = lastDoValue.timestamp;
-                    // createDataRow(tsid, lastDoValue.value, dateTimeDo);
-                } else {
-                    dateTimeDo = doEntry.latestTime;
-                    createDataRow(tsid, lastDoValue.value, dateTimeDo);
-                }
-            });
-
-
-            // If no data available for temp-water, depth, and do
-            if (tempWaterData.length === 0 && depthData.length === 0 && doData.length === 0) {
-                const dataRow = document.createElement('tr');
-
-                const nameCell = document.createElement('td');
-                nameCell.textContent = 'No Data Available';
-                nameCell.colSpan = 3; // Span across all three columns
-
-                dataRow.appendChild(nameCell);
-                table.appendChild(dataRow);
+            const entry = values.find(v => v[0] === formattedTime);
+            if (entry) {
+                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
+            } else {
+                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
             }
-
         });
-    });
 
-    return table;
-}
+        // Push the result for this data entry
+        result.push({
+            name: data.name,
+            values: foundValues // This will contain the array of { time, value } objects
+        });
+
+        return result;
+    };
+
+    function getLastNonNullValue(data, tsid) {
+        // Iterate over the values array in reverse
+        for (let i = data.values.length - 1; i >= 0; i--) {
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // Return the non-null value as separate variables
+                return {
+                    tsid: tsid,
+                    timestamp: data.values[i][0],
+                    value: data.values[i][1],
+                    qualityCode: data.values[i][2]
+                };
+            }
+        }
+        // If no non-null value is found, return null
+        return null;
+    }
+
+    function createTable(data) {
+        const table = document.createElement('table');
+        table.id = 'customers'; // Assigning the ID of "customers"
+
+        data.forEach(item => {
+            // Create header row for the item's ID
+            const headerRow = document.createElement('tr');
+            const idHeader = document.createElement('th');
+            idHeader.colSpan = 3;
+            // Apply styles
+            idHeader.style.backgroundColor = 'darkblue';
+            idHeader.style.color = 'white';
+            idHeader.textContent = item.id; // Display the item's ID
+            headerRow.appendChild(idHeader);
+            table.appendChild(headerRow);
+
+            // Create subheader row for "Time Series", "Value", "Date Time"
+            const subHeaderRow = document.createElement('tr');
+            ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
+                const td = document.createElement('td');
+                td.textContent = headerText;
+                subHeaderRow.appendChild(td);
+            });
+            table.appendChild(subHeaderRow);
+
+            // Process each assigned location
+            item['assigned-locations'].forEach(location => {
+                const tempWaterData = location['extents-data']?.['temp-water'] || [];
+                const depthData = location['extents-data']?.['depth'] || [];
+                const doData = location['extents-data']?.['do'] || [];
+
+                // Function to create data row
+                const createDataRow = (tsid, value, timestamp) => {
+                    const dataRow = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = tsid;
+
+                    const lastValueCell = document.createElement('td');
+
+                    // Wrap the value in a span with the blinking-text class
+                    const valueSpan = document.createElement('span');
+                    valueSpan.classList.add('blinking-text');
+                    valueSpan.textContent = value;
+                    lastValueCell.appendChild(valueSpan);
+
+                    const latestTimeCell = document.createElement('td');
+                    latestTimeCell.textContent = timestamp;
+
+                    dataRow.appendChild(nameCell);
+                    dataRow.appendChild(lastValueCell);
+                    dataRow.appendChild(latestTimeCell);
+
+                    table.appendChild(dataRow);
+                };
+
+                // Process temperature water data
+                tempWaterData.forEach(tempEntry => {
+                    const tsid = tempEntry.name; // Time-series ID from extents-data
+
+                    // Safely access 'temp-water-last-value'
+                    const lastTempValue = (Array.isArray(location['temp-water-last-value'])
+                        ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
+                        : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                    let dateTime = null;
+                    if (lastTempValue && lastTempValue.value !== 'N/A') {
+                        // Format lastTempValue to two decimal places
+                        lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
+                        dateTime = lastTempValue.timestamp;
+                    } else {
+                        dateTime = tempEntry.latestTime;
+                        typeof (dateTime);
+                        createDataRow(tsid, lastTempValue.value, dateTime);
+                    }
+                });
+
+                // Process depth data
+                depthData.forEach(depthEntry => {
+                    const tsid = depthEntry.name; // Time-series ID from extents-data
+
+                    // Safely access 'depth-last-value'
+                    const lastDepthValue = (Array.isArray(location['depth-last-value'])
+                        ? location['depth-last-value'].find(entry => entry && entry.tsid === tsid)
+                        : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                    let dateTimeDepth = null;
+                    if (lastDepthValue && lastDepthValue.value !== 'N/A') {
+                        // Format lastDepthValue to two decimal places
+                        lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
+                        dateTimeDepth = lastDepthValue.timestamp;
+                        // createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                    } else {
+                        dateTimeDepth = depthEntry.latestTime;
+                        createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                    }
+                });
+
+                // Process DO (dissolved oxygen) data
+                doData.forEach(doEntry => {
+                    const tsid = doEntry.name; // Time-series ID from extents-data
+
+                    // Safely access 'do-last-value'
+                    const lastDoValue = (Array.isArray(location['do-last-value'])
+                        ? location['do-last-value'].find(entry => entry && entry.tsid === tsid)
+                        : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                    let dateTimeDo = null;
+                    if (lastDoValue && lastDoValue.value !== 'N/A') {
+                        // Format lastDoValue to two decimal places
+                        lastDoValue.value = parseFloat(lastDoValue.value).toFixed(2);
+                        dateTimeDo = lastDoValue.timestamp;
+                        // createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                    } else {
+                        dateTimeDo = doEntry.latestTime;
+                        createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                    }
+                });
+
+
+                // If no data available for temp-water, depth, and do
+                if (tempWaterData.length === 0 && depthData.length === 0 && doData.length === 0) {
+                    const dataRow = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = 'No Data Available';
+                    nameCell.colSpan = 3; // Span across all three columns
+
+                    dataRow.appendChild(nameCell);
+                    table.appendChild(dataRow);
+                }
+
+            });
+        });
+
+        return table;
+    }
+});
