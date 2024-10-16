@@ -355,20 +355,29 @@ document.addEventListener('DOMContentLoaded', async function () {
                 .then(() => {
                     console.log('All combinedData data fetched successfully:', combinedData);
 
-                    // Check if there are valid lastDatmanValues in the data
-                    if (hasValidLastDatmanValue(combinedData)) {
-                        // Only call createTable if valid data exists
-                        const table = createTable(combinedData);
+                    // Check and remove all attribute ending in 0.1
+                    combinedData.forEach((dataObj, index) => {
+                        console.log(`Processing dataObj at index ${index}:`, dataObj[`assigned-locations`]);
 
-                        // Append the table to the specified container
-                        const container = document.getElementById('table_container_alarm_datman');
-                        container.appendChild(table);
-                    } else {
-                        console.log('No valid lastDatmanValue found. Displaying image instead.');
+                        // Filter out locations where the 'attribute' ends with '.1'
+                        dataObj[`assigned-locations`] = dataObj[`assigned-locations`].filter(location => {
+                            const attribute = location[`attribute`].toString();
+                            console.log(`Checking attribute: ${attribute}`);
+                            return !attribute.endsWith('.1');
+                        });
+
+                        console.log(`Updated assigned-locations for index ${index}:`, dataObj[`assigned-locations`]);
+                    });
+
+                    console.log('All combinedData data filtered successfully:', combinedData);
+
+                    // Check if there are valid lastDatmanValues in the data
+                    if (hasValidLastValue(combinedData)) {
+                        console.log('Valid lastDatmanValue found. Displaying image instead.');
 
                         // Create an img element
                         const img = document.createElement('img');
-                        img.src = '/apps/alarms/images/process-completed-icon.png'; // Set the image source
+                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
                         img.alt = 'Process Completed'; // Optional alt text for accessibility
                         img.style.width = '50px'; // Optional: set the image width
                         img.style.height = '50px'; // Optional: set the image height
@@ -376,6 +385,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Get the container and append the image
                         const container = document.getElementById('table_container_alarm_datman');
                         container.appendChild(img);
+                    } else {
+                        // Only call createTable if no valid data exists
+                        const table = createTable(combinedData);
+
+                        // Append the table to the specified container
+                        const container = document.getElementById('table_container_alarm_datman');
+                        container.appendChild(table);
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -483,24 +499,48 @@ document.addEventListener('DOMContentLoaded', async function () {
         return null;
     }
 
-    function hasValidLastDatmanValue(data) {
-        // Iterate through each location in the data
-        for (let item of data) {
-            const datmanLastValueArray = item['datman-last-value'];
+    function hasValidLastValue(data) {
+        // Iterate through each key in the data object
+        for (const locationIndex in data) {
+            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
+                const item = data[locationIndex];
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
-            // Check if 'datman-last-value' exists and is an array
-            if (Array.isArray(datmanLastValueArray)) {
-                // Check if any entry in the array has a valid value (not 'N/A')
-                const validEntry = datmanLastValueArray.find(entry => entry && entry.value !== 'N/A');
+                const assignedLocations = item['assigned-locations'];
+                // Check if assigned-locations is an object
+                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
+                    console.log('No assigned-locations found in basin:', item);
+                    continue; // Skip to the next basin
+                }
 
-                // If any valid entry exists, return true
-                if (validEntry) {
-                    return true;
+                // Iterate through each location in assigned-locations
+                for (const locationName in assignedLocations) {
+                    const location = assignedLocations[locationName];
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+
+                    const datmanLastValueArray = location['datman-last-value'];
+
+                    // Check if 'datman-last-value' exists and is an array
+                    if (Array.isArray(datmanLastValueArray)) {
+                        console.log('datman-last-value array found:', datmanLastValueArray);
+                        // Check all entries in the array for valid values (not 'N/A')
+                        const validDatmanEntries = datmanLastValueArray.filter(entry => entry && entry.value !== 'N/A');
+
+                        if (validDatmanEntries.length > 0) {
+                            console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
+                            return true;
+                        } else {
+                            console.log(`No valid datman entries found in location ${locationName}.`);
+                        }
+                    } else {
+                        console.log(`No datman-last-value array found in location ${locationName}.`);
+                    }
                 }
             }
         }
 
         // Return false if no valid entry was found in any location
+        console.log('No valid entries found in any location.');
         return false;
     }
 

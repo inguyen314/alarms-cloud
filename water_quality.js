@@ -405,20 +405,30 @@ document.addEventListener('DOMContentLoaded', async function () {
                 .then(() => {
                     console.log('All combinedData data fetched successfully:', combinedData);
 
+                    // Check and remove all attribute ending in 0.1
+                    combinedData.forEach((dataObj, index) => {
+                        console.log(`Processing dataObj at index ${index}:`, dataObj[`assigned-locations`]);
+
+                        // Filter out locations where the 'attribute' ends with '.1'
+                        dataObj[`assigned-locations`] = dataObj[`assigned-locations`].filter(location => {
+                            const attribute = location[`attribute`].toString();
+                            console.log(`Checking attribute: ${attribute}`);
+                            return !attribute.endsWith('.1');
+                        });
+
+                        console.log(`Updated assigned-locations for index ${index}:`, dataObj[`assigned-locations`]);
+                    });
+
+                    console.log('All combinedData data filtered successfully:', combinedData);
+
+
                     // Check if there are valid lastDatmanValues in the data
                     if (hasValidLastValue(combinedData)) {
-                        // Only call createTable if valid data exists
-                        const table = createTable(combinedData);
-
-                        // Append the table to the specified container
-                        const container = document.getElementById('table_container_alarm_water_quality');
-                        container.appendChild(table);
-                    } else {
-                        console.log('No valid lastValue found. Displaying image instead.');
+                        console.log('Valid lastValue found. Displaying image instead.');
 
                         // Create an img element
                         const img = document.createElement('img');
-                        img.src = '/apps/alarms/images/process-completed-icon.png'; // Set the image source
+                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
                         img.alt = 'Process Completed'; // Optional alt text for accessibility
                         img.style.width = '50px'; // Optional: set the image width
                         img.style.height = '50px'; // Optional: set the image height
@@ -426,6 +436,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Get the container and append the image
                         const container = document.getElementById('table_container_alarm_water_quality');
                         container.appendChild(img);
+                    } else {
+                        // Only call createTable if no valid data exists
+                        const table = createTable(combinedData);
+
+                        // Append the table to the specified container
+                        const container = document.getElementById('table_container_alarm_water_quality');
+                        container.appendChild(table);
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -530,110 +547,89 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function hasValidLastValue(data) {
-        // Iterate through each item in the main data array
-        for (let locationIndex = 0; locationIndex < data.length; locationIndex++) {
-            const item = data[locationIndex];
-            console.log(`Checking basin ${locationIndex + 1}:`, item); // Log the current item being checked
-    
-            const assignedLocations = item['assigned-locations'];
-            // Check if assigned-locations is an object
-            if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                console.log('No assigned-locations found in basin:', item);
-                continue; // Skip to the next basin
-            }
-    
-            // Iterate through each location in assigned-locations
-            for (const locationName in assignedLocations) {
-                const location = assignedLocations[locationName];
-                console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-                
-                const tempWaterLastValueArray = location['temp-water-last-value'];
-                const depthLastValueArray = location['depth-last-value'];
-                const doLastValueArray = location['do-last-value'];
-    
-                // Check if 'temp-water-last-value' exists and is an array
-                if (Array.isArray(tempWaterLastValueArray)) {
-                    console.log('temp-water-last-value array found:', tempWaterLastValueArray);
-                    // Check all entries in the array for valid values (not 'N/A')
-                    const validTempWaterEntries = tempWaterLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-    
-                    if (validTempWaterEntries.length > 0) {
-                        console.log(`Valid temp-water entries found in location ${locationName}:`, validTempWaterEntries);
-                        return true;
-                    } else {
-                        console.log(`No valid temp-water entries found in location ${locationName}.`);
-                    }
-                } else {
-                    console.log(`No temp-water-last-value array found in location ${locationName}.`);
+        // Iterate through each key in the data object
+        for (const locationIndex in data) {
+            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
+                const item = data[locationIndex];
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+
+                const assignedLocations = item['assigned-locations'];
+                // Check if assigned-locations is an object
+                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
+                    console.log('No assigned-locations found in basin:', item);
+                    continue; // Skip to the next basin
                 }
-    
-                // Check if 'depth-last-value' exists and is an array
-                if (Array.isArray(depthLastValueArray)) {
-                    console.log('depth-last-value array found:', depthLastValueArray);
-                    // Check all entries in the array for valid values (not 'N/A')
-                    const validDepthEntries = depthLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-    
-                    if (validDepthEntries.length > 0) {
-                        console.log(`Valid depth entries found in location ${locationName}:`, validDepthEntries);
-                        return true;
+
+                // Iterate through each location in assigned-locations
+                for (const locationName in assignedLocations) {
+                    const location = assignedLocations[locationName];
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+
+                    const tempWaterLastValueArray = location['temp-water-last-value'];
+                    const depthLastValueArray = location['depth-last-value'];
+                    const doLastValueArray = location['do-last-value'];
+
+                    // Check if 'temp-water-last-value' exists and is an array
+                    if (Array.isArray(tempWaterLastValueArray)) {
+                        console.log('temp-water-last-value array found:', tempWaterLastValueArray);
+                        // Check all entries in the array for valid values (not 'N/A')
+                        const validTempWaterEntries = tempWaterLastValueArray.filter(entry => entry && entry.value !== 'N/A');
+
+                        if (validTempWaterEntries.length > 0) {
+                            console.log(`Valid temp-water entries found in location ${locationName}:`, validTempWaterEntries);
+                            return true;
+                        } else {
+                            console.log(`No valid temp-water entries found in location ${locationName}.`);
+                        }
                     } else {
-                        console.log(`No valid depth entries found in location ${locationName}.`);
+                        console.log(`No temp-water-last-value array found in location ${locationName}.`);
                     }
-                } else {
-                    console.log(`No depth-last-value array found in location ${locationName}.`);
-                }
-    
-                // Check if 'do-last-value' exists and is an array
-                if (Array.isArray(doLastValueArray)) {
-                    console.log('do-last-value array found:', doLastValueArray);
-                    // Check all entries in the array for valid values (not 'N/A')
-                    const validDoEntries = doLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-    
-                    if (validDoEntries.length > 0) {
-                        console.log(`Valid do entries found in location ${locationName}:`, validDoEntries);
-                        return true;
+
+                    // Check if 'depth-last-value' exists and is an array
+                    if (Array.isArray(depthLastValueArray)) {
+                        console.log('depth-last-value array found:', depthLastValueArray);
+                        // Check all entries in the array for valid values (not 'N/A')
+                        const validDepthEntries = depthLastValueArray.filter(entry => entry && entry.value !== 'N/A');
+
+                        if (validDepthEntries.length > 0) {
+                            console.log(`Valid depth entries found in location ${locationName}:`, validDepthEntries);
+                            return true;
+                        } else {
+                            console.log(`No valid depth entries found in location ${locationName}.`);
+                        }
                     } else {
-                        console.log(`No valid do entries found in location ${locationName}.`);
+                        console.log(`No depth-last-value array found in location ${locationName}.`);
                     }
-                } else {
-                    console.log(`No do-last-value array found in location ${locationName}.`);
+
+                    // Check if 'do-last-value' exists and is an array
+                    if (Array.isArray(doLastValueArray)) {
+                        console.log('do-last-value array found:', doLastValueArray);
+                        // Check all entries in the array for valid values (not 'N/A')
+                        const validDoEntries = doLastValueArray.filter(entry => entry && entry.value !== 'N/A');
+
+                        if (validDoEntries.length > 0) {
+                            console.log(`Valid do entries found in location ${locationName}:`, validDoEntries);
+                            return true;
+                        } else {
+                            console.log(`No valid do entries found in location ${locationName}.`);
+                        }
+                    } else {
+                        console.log(`No do-last-value array found in location ${locationName}.`);
+                    }
                 }
             }
         }
-    
+
         // Return false if no valid entry was found in any location
         console.log('No valid entries found in any location.');
         return false;
     }
-      
+
     function createTable(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
-    
-        const shouldSkipLocation = (location) => {
-            console.log(location);
-            console.log(location.attribute);
-        
-            // Check if 'attribute' exists and is a number
-            if (typeof location['attribute'] === 'number') {
-                // Return true if the attribute value ends with '.1'
-                return location.attribute.toString().endsWith('.1');
-            }
-            return false; // Return false if 'attribute' is not a number
-        };
-    
-        // Check if all locations should be skipped
-        const shouldPrintTable = (locations) => {
-            return !locations.every(location => shouldSkipLocation(location));
-        };
-    
+
         data.forEach(item => {
-            // Check if we should print the table
-            if (!shouldPrintTable(item['assigned-locations'])) {
-                console.log('All locations have attributes ending with .1. Table will not be printed.');
-                return; // Skip the table creation if all locations should be skipped
-            }
-    
             // Create header row for the item's ID
             const headerRow = document.createElement('tr');
             const idHeader = document.createElement('th');
@@ -644,7 +640,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             idHeader.textContent = item.id; // Display the item's ID
             headerRow.appendChild(idHeader);
             table.appendChild(headerRow);
-    
+
             // Create subheader row for "Time Series", "Value", "Latest Time"
             const subHeaderRow = document.createElement('tr');
             ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
@@ -653,52 +649,47 @@ document.addEventListener('DOMContentLoaded', async function () {
                 subHeaderRow.appendChild(td);
             });
             table.appendChild(subHeaderRow);
-    
+
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
-                // Skip location if any attribute ends with '.1'
-                if (shouldSkipLocation(location)) {
-                    return;
-                }
-    
                 const tempWaterData = location['extents-data']?.['temp-water'] || [];
                 const depthData = location['extents-data']?.['depth'] || [];
                 const doData = location['extents-data']?.['do'] || [];
-    
+
                 // Function to create data row
                 const createDataRow = (tsid, value, timestamp) => {
                     const dataRow = document.createElement('tr');
-    
+
                     const nameCell = document.createElement('td');
                     nameCell.textContent = tsid;
-    
+
                     const lastValueCell = document.createElement('td');
-    
+
                     // Wrap the value in a span with the blinking-text class
                     const valueSpan = document.createElement('span');
                     valueSpan.classList.add('blinking-text');
                     valueSpan.textContent = value;
                     lastValueCell.appendChild(valueSpan);
-    
+
                     const latestTimeCell = document.createElement('td');
                     latestTimeCell.textContent = timestamp;
-    
+
                     dataRow.appendChild(nameCell);
                     dataRow.appendChild(lastValueCell);
                     dataRow.appendChild(latestTimeCell);
-    
+
                     table.appendChild(dataRow);
                 };
-    
+
                 // Process temperature water data
                 tempWaterData.forEach(tempEntry => {
                     const tsid = tempEntry.name; // Time-series ID from extents-data
-    
+
                     // Safely access 'temp-water-last-value'
                     const lastTempValue = (Array.isArray(location['temp-water-last-value'])
                         ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
                         : null) || { value: 'N/A', timestamp: 'N/A' };
-    
+
                     let dateTime = null;
                     if (lastTempValue && lastTempValue.value !== 'N/A') {
                         // Format lastTempValue to two decimal places
@@ -709,16 +700,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                         createDataRow(tsid, lastTempValue.value, dateTime);
                     }
                 });
-    
+
                 // Process depth data
                 depthData.forEach(depthEntry => {
                     const tsid = depthEntry.name; // Time-series ID from extents-data
-    
+
                     // Safely access 'depth-last-value'
                     const lastDepthValue = (Array.isArray(location['depth-last-value'])
                         ? location['depth-last-value'].find(entry => entry && entry.tsid === tsid)
                         : null) || { value: 'N/A', timestamp: 'N/A' };
-    
+
                     let dateTimeDepth = null;
                     if (lastDepthValue && lastDepthValue.value !== 'N/A') {
                         // Format lastDepthValue to two decimal places
@@ -729,16 +720,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                         createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
                     }
                 });
-    
+
                 // Process DO (dissolved oxygen) data
                 doData.forEach(doEntry => {
                     const tsid = doEntry.name; // Time-series ID from extents-data
-    
+
                     // Safely access 'do-last-value'
                     const lastDoValue = (Array.isArray(location['do-last-value'])
                         ? location['do-last-value'].find(entry => entry && entry.tsid === tsid)
                         : null) || { value: 'N/A', timestamp: 'N/A' };
-    
+
                     let dateTimeDo = null;
                     if (lastDoValue && lastDoValue.value !== 'N/A') {
                         // Format lastDoValue to two decimal places
@@ -749,22 +740,22 @@ document.addEventListener('DOMContentLoaded', async function () {
                         createDataRow(tsid, lastDoValue.value, dateTimeDo);
                     }
                 });
-    
+
                 // If no data available for temp-water, depth, and do
                 if (tempWaterData.length === 0 && depthData.length === 0 && doData.length === 0) {
                     const dataRow = document.createElement('tr');
-    
+
                     const nameCell = document.createElement('td');
                     nameCell.textContent = 'No Data Available';
                     nameCell.colSpan = 3; // Span across all three columns
-    
+
                     dataRow.appendChild(nameCell);
                     table.appendChild(dataRow);
                 }
-    
+
             });
         });
-    
+
         return table;
     }
 });
