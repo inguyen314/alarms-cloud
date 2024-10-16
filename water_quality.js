@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Get the current date and time, and compute a "look-back" time for historical data
     const currentDateTime = new Date();
-    const lookBackHours = subtractHoursFromDate(new Date(), 12); // Subtract 12 hours from the current time
+    const lookBackHours = subtractHoursFromDate(new Date(), 8); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -547,83 +547,88 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function hasValidLastValue(data) {
+        let allLocationsValid = true; // Flag to track if all locations are valid
+    
         // Iterate through each key in the data object
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
                 console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
+    
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
                     console.log('No assigned-locations found in basin:', item);
+                    allLocationsValid = false; // Mark as invalid since no assigned locations are found
                     continue; // Skip to the next basin
                 }
-
+    
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
                     console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
+    
                     const tempWaterLastValueArray = location['temp-water-last-value'];
                     const depthLastValueArray = location['depth-last-value'];
                     const doLastValueArray = location['do-last-value'];
-
-                    // Check if 'temp-water-last-value' exists and is an array
+    
+                    // Check for valid temp-water-last-value entries
+                    let hasValidValue = false;
+    
                     if (Array.isArray(tempWaterLastValueArray)) {
-                        console.log('temp-water-last-value array found:', tempWaterLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A')
-                        const validTempWaterEntries = tempWaterLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-
+                        const validTempWaterEntries = tempWaterLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                        );
+    
                         if (validTempWaterEntries.length > 0) {
                             console.log(`Valid temp-water entries found in location ${locationName}:`, validTempWaterEntries);
-                            return true;
-                        } else {
-                            console.log(`No valid temp-water entries found in location ${locationName}.`);
+                            hasValidValue = true;
                         }
-                    } else {
-                        console.log(`No temp-water-last-value array found in location ${locationName}.`);
                     }
-
-                    // Check if 'depth-last-value' exists and is an array
+    
+                    // Check for valid depth-last-value entries
                     if (Array.isArray(depthLastValueArray)) {
-                        console.log('depth-last-value array found:', depthLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A')
-                        const validDepthEntries = depthLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-
+                        const validDepthEntries = depthLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                        );
+    
                         if (validDepthEntries.length > 0) {
                             console.log(`Valid depth entries found in location ${locationName}:`, validDepthEntries);
-                            return true;
-                        } else {
-                            console.log(`No valid depth entries found in location ${locationName}.`);
+                            hasValidValue = true;
                         }
-                    } else {
-                        console.log(`No depth-last-value array found in location ${locationName}.`);
                     }
-
-                    // Check if 'do-last-value' exists and is an array
+    
+                    // Check for valid do-last-value entries
                     if (Array.isArray(doLastValueArray)) {
-                        console.log('do-last-value array found:', doLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A')
-                        const validDoEntries = doLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-
+                        const validDoEntries = doLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                        );
+    
                         if (validDoEntries.length > 0) {
                             console.log(`Valid do entries found in location ${locationName}:`, validDoEntries);
-                            return true;
-                        } else {
-                            console.log(`No valid do entries found in location ${locationName}.`);
+                            hasValidValue = true;
                         }
-                    } else {
-                        console.log(`No do-last-value array found in location ${locationName}.`);
+                    }
+    
+                    // If none of the arrays have a valid entry, mark the location as invalid
+                    if (!hasValidValue) {
+                        console.log(`No valid entries found in location ${locationName}.`);
+                        allLocationsValid = false; // Set flag to false if any location is invalid
                     }
                 }
             }
         }
-
-        // Return false if no valid entry was found in any location
-        console.log('No valid entries found in any location.');
-        return false;
+    
+        // Return true only if all locations are valid
+        if (allLocationsValid) {
+            console.log('All locations have valid entries.');
+            return true;
+        } else {
+            console.log('Some locations are missing valid entries.');
+            return false;
+        }
     }
+    
 
     function createTable(data) {
         const table = document.createElement('table');
@@ -691,7 +696,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         : null) || { value: 'N/A', timestamp: 'N/A' };
 
                     let dateTime = null;
-                    if (lastTempValue && lastTempValue.value !== 'N/A') {
+                    if (lastTempValue && lastTempValue.value !== 'N/A' && lastTempValue.value >- 900 && lastTempValue.value < 900) {
                         // Format lastTempValue to two decimal places
                         lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
                         dateTime = lastTempValue.timestamp;
@@ -711,7 +716,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         : null) || { value: 'N/A', timestamp: 'N/A' };
 
                     let dateTimeDepth = null;
-                    if (lastDepthValue && lastDepthValue.value !== 'N/A') {
+                    if (lastDepthValue && lastDepthValue.value !== 'N/A' && lastDepthValue.value >- 900 && lastDepthValue.value < 900) {
                         // Format lastDepthValue to two decimal places
                         lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
                         dateTimeDepth = lastDepthValue.timestamp;
@@ -731,7 +736,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         : null) || { value: 'N/A', timestamp: 'N/A' };
 
                     let dateTimeDo = null;
-                    if (lastDoValue && lastDoValue.value !== 'N/A') {
+                    if (lastDoValue && lastDoValue.value !== 'N/A' && lastDoValue.value >- 900 && lastDoValue.value < 900) {
                         // Format lastDoValue to two decimal places
                         lastDoValue.value = parseFloat(lastDoValue.value).toFixed(2);
                         dateTimeDo = lastDoValue.timestamp;

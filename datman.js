@@ -500,49 +500,66 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function hasValidLastValue(data) {
+        let allLocationsValid = true; // Flag to track if all locations are valid
+    
         // Iterate through each key in the data object
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
                 console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
+    
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
                     console.log('No assigned-locations found in basin:', item);
+                    allLocationsValid = false; // Mark as invalid since no assigned locations are found
                     continue; // Skip to the next basin
                 }
-
+    
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
                     console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
+    
                     const datmanLastValueArray = location['datman-last-value'];
-
+    
                     // Check if 'datman-last-value' exists and is an array
+                    let hasValidValue = false;
+    
                     if (Array.isArray(datmanLastValueArray)) {
                         console.log('datman-last-value array found:', datmanLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A')
-                        const validDatmanEntries = datmanLastValueArray.filter(entry => entry && entry.value !== 'N/A');
-
+                        // Check all entries in the array for valid values (not 'N/A' and within the range -999 to 999)
+                        const validDatmanEntries = datmanLastValueArray.filter(entry => 
+                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                        );
+    
                         if (validDatmanEntries.length > 0) {
                             console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
-                            return true;
+                            hasValidValue = true;
                         } else {
                             console.log(`No valid datman entries found in location ${locationName}.`);
                         }
                     } else {
                         console.log(`No datman-last-value array found in location ${locationName}.`);
                     }
+    
+                    // If no valid values found in the current location, mark as invalid
+                    if (!hasValidValue) {
+                        allLocationsValid = false; // Set flag to false if any location is invalid
+                    }
                 }
             }
         }
-
-        // Return false if no valid entry was found in any location
-        console.log('No valid entries found in any location.');
-        return false;
-    }
+    
+        // Return true only if all locations are valid
+        if (allLocationsValid) {
+            console.log('All locations have valid entries.');
+            return true;
+        } else {
+            console.log('Some locations are missing valid entries.');
+            return false;
+        }
+    }    
 
     function createTable(data) {
         const table = document.createElement('table');
