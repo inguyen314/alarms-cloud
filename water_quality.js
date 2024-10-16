@@ -862,11 +862,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                             
                             if (Array.isArray(valuesArray) && valuesArray.length > 0) {
                                 const maxValue = Math.max(...valuesArray.map(v => v[1])); // Assuming value is at index 1
+                                const minValue = Math.min(...valuesArray.map(v => v[1])); // Assuming value is at index 1
                                 const latestTime = entry.latestTime; // Get the latest timestamp
     
                                 // Check for spike condition
-                                if (maxValue > 999 || maxValue < -9000) {
-                                    spikeData.push({ tsid, value: maxValue.toFixed(2), timestamp: latestTime });
+                                if (maxValue > 999 || maxValue < -9000 || minValue > 999 || minValue < -9000) {
+                                    spikeData.push({ tsid, maxValue: maxValue.toFixed(2), minValue: minValue.toFixed(2), timestamp: latestTime });
                                     hasDataRows = true; // Mark that we have valid data rows
                                 }
                             }
@@ -883,16 +884,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Create header row for the item's ID
                         const headerRow = document.createElement('tr');
                         const idHeader = document.createElement('th');
-                        idHeader.colSpan = 3;
+                        idHeader.colSpan = 4; // Adjusting colspan for an additional column
                         idHeader.style.backgroundColor = 'darkblue';
                         idHeader.style.color = 'white';
                         idHeader.textContent = item.id; // Display the item's ID
                         headerRow.appendChild(idHeader);
                         table.appendChild(headerRow);
     
-                        // Create subheader row for "Time Series", "Max Value", "Latest Time"
+                        // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
                         const subHeaderRow = document.createElement('tr');
-                        ['Time Series', 'Max Value', 'Latest Time'].forEach(headerText => {
+                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
                             const td = document.createElement('td');
                             td.textContent = headerText;
                             subHeaderRow.appendChild(td);
@@ -900,8 +901,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         table.appendChild(subHeaderRow);
                         
                         // Append data rows for spikes
-                        spikeData.forEach(({ tsid, value, timestamp }) => {
-                            createDataRow(tsid, value, timestamp);
+                        spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
+                            createDataRow(tsid, maxValue, minValue, timestamp);
                         });
                     }
                 });
@@ -924,27 +925,35 @@ document.addEventListener('DOMContentLoaded', async function () {
         return table;
     
         // Helper function to create data rows
-        function createDataRow(tsid, value, timestamp) {
+        function createDataRow(tsid, maxValue, minValue, timestamp) {
             const dataRow = document.createElement('tr');
     
             const nameCell = document.createElement('td');
             nameCell.textContent = tsid;
     
-            const lastValueCell = document.createElement('td');
-            // Wrap the value in a span with the blinking-text class
-            const valueSpan = document.createElement('span');
-            valueSpan.classList.add('blinking-text');
-            valueSpan.textContent = value;
-            lastValueCell.appendChild(valueSpan);
+            const maxValueCell = document.createElement('td');
+            // Wrap the max value in a span with the blinking-text class
+            const maxValueSpan = document.createElement('span');
+            maxValueSpan.classList.add('blinking-text');
+            maxValueSpan.textContent = maxValue;
+            maxValueCell.appendChild(maxValueSpan);
+    
+            const minValueCell = document.createElement('td');
+            // Wrap the min value in a span with the blinking-text class
+            const minValueSpan = document.createElement('span');
+            minValueSpan.classList.add('blinking-text');
+            minValueSpan.textContent = minValue;
+            minValueCell.appendChild(minValueSpan);
     
             const latestTimeCell = document.createElement('td');
             latestTimeCell.textContent = timestamp;
     
             dataRow.appendChild(nameCell);
-            dataRow.appendChild(lastValueCell);
+            dataRow.appendChild(maxValueCell);
+            dataRow.appendChild(minValueCell);
             dataRow.appendChild(latestTimeCell);
     
             table.appendChild(dataRow);
         }
-    } 
+    }
 });
