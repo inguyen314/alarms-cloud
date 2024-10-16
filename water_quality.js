@@ -423,20 +423,32 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
                     // Check if there are valid lastDatmanValues in the data
-                    if (hasValidLastValue(combinedData)) {
-                        console.log('Valid lastValue found. Displaying image instead.');
+                    if (hasLastValue(combinedData)) {
+                        if (hasDataSpike(combinedData)) {
+                            console.log("Data spike detected. calling createTableDataSpike");
+                            // call createTable if data spike exists
+                            const table = createTableDataSpike(combinedData);
 
-                        // Create an img element
-                        const img = document.createElement('img');
-                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                        img.alt = 'Process Completed'; // Optional alt text for accessibility
-                        img.style.width = '50px'; // Optional: set the image width
-                        img.style.height = '50px'; // Optional: set the image height
+                            // Append the table to the specified container
+                            const container = document.getElementById('table_container_alarm_water_quality');
+                            container.appendChild(table);
+                        } else {
+                            console.log("No data spikes detected.");
+                            console.log('Valid lastDatmanValue found. Displaying image instead.');
 
-                        // Get the container and append the image
-                        const container = document.getElementById('table_container_alarm_water_quality');
-                        container.appendChild(img);
+                            // Create an img element
+                            const img = document.createElement('img');
+                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                            img.alt = 'Process Completed'; // Optional alt text for accessibility
+                            img.style.width = '50px'; // Optional: set the image width
+                            img.style.height = '50px'; // Optional: set the image height
+
+                            // Get the container and append the image
+                            const container = document.getElementById('table_container_alarm_water_quality');
+                            container.appendChild(img);
+                        }
                     } else {
+                        console.log("No last value and no data spike detected.");
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData);
 
@@ -546,7 +558,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return null;
     }
 
-    function hasValidLastValue(data) {
+    function hasLastValue(data) {
         let allLocationsValid = true; // Flag to track if all locations are valid
     
         // Iterate through each key in the data object
@@ -577,7 +589,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     
                     if (Array.isArray(tempWaterLastValueArray)) {
                         const validTempWaterEntries = tempWaterLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                            entry && entry.value !== 'N/A'
                         );
     
                         if (validTempWaterEntries.length > 0) {
@@ -589,7 +601,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Check for valid depth-last-value entries
                     if (Array.isArray(depthLastValueArray)) {
                         const validDepthEntries = depthLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                            entry && entry.value !== 'N/A'
                         );
     
                         if (validDepthEntries.length > 0) {
@@ -601,7 +613,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Check for valid do-last-value entries
                     if (Array.isArray(doLastValueArray)) {
                         const validDoEntries = doLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                            entry && entry.value !== 'N/A'
                         );
     
                         if (validDoEntries.length > 0) {
@@ -628,8 +640,66 @@ document.addEventListener('DOMContentLoaded', async function () {
             return false;
         }
     }
-    
 
+    function hasDataSpike(data) {
+        // Iterate through each key in the data object
+        for (const locationIndex in data) {
+            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
+                const item = data[locationIndex];
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+    
+                const assignedLocations = item['assigned-locations'];
+                // Check if assigned-locations is an object
+                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
+                    console.log('No assigned-locations found in basin:', item);
+                    continue; // Skip to the next basin
+                }
+    
+                // Iterate through each location in assigned-locations
+                for (const locationName in assignedLocations) {
+                    const location = assignedLocations[locationName];
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+    
+                    const extentsData = location['extents-data'];
+                    const tempWaterData = extentsData?.['temp-water'] || [];
+                    const depthData = extentsData?.['depth'] || [];
+                    const doData = extentsData?.['do'] || [];
+    
+                    // Helper function to check for data spikes in a given data array
+                    const checkForSpikes = (dataArray, dataType) => {
+                        let maxValue = -Infinity; // Initialize to a very low value
+    
+                        // Iterate through the data array and find the max value
+                        dataArray.forEach(entry => {
+                            const currentValue = parseFloat(entry.value); // Assuming the value is stored in the 'value' property
+                            if (!isNaN(currentValue)) {
+                                maxValue = Math.max(maxValue, currentValue);
+                            }
+                        });
+    
+                        // Log the max value for the current data type
+                        console.log(`Max ${dataType} value for location ${locationName}:`, maxValue);
+    
+                        // Check if the max value exceeds 999 or is less than -9000
+                        if (maxValue > 999 || maxValue < -9000) {
+                            console.log(`Data spike detected in location ${locationName}: ${dataType} value = ${maxValue}`);
+                            return true; // Return true if any spike is found
+                        }
+                        return false; // No spike found
+                    };
+    
+                    // Check for spikes in temperature water, depth, and DO data
+                    if (checkForSpikes(tempWaterData, 'temperature water') || 
+                        checkForSpikes(depthData, 'depth') || 
+                        checkForSpikes(doData, 'DO')) {
+                        return true; // Return true if any spike is found
+                    }
+                }
+            }
+        }
+        return false; // Return false if no spikes are found in any locations
+    }    
+    
     function createTable(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
@@ -763,4 +833,118 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         return table;
     }
+
+    function createTableDataSpike(data) {
+        const table = document.createElement('table');
+        table.id = 'customers'; // Assigning the ID of "customers"
+    
+        data.forEach(item => {
+            const assignedLocations = item['assigned-locations'];
+    
+            // Proceed only if there are assigned locations
+            if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
+                let hasDataRows = false; // Flag to check if any valid data rows are created
+                
+                // Process each assigned location
+                assignedLocations.forEach(location => {
+                    const doData = location['do-api-data'] || []; // Fetch DO API data
+                    const depthData = location['depth-api-data'] || []; // Fetch Depth API data
+                    const tempWaterData = location['temp-water-api-data'] || []; // Fetch Temp-Water API data
+    
+                    // Temporary storage for data entries to check for spikes
+                    const spikeData = [];
+    
+                    // Check each data type for spikes
+                    const checkForSpikes = (dataArray, type) => {
+                        dataArray.forEach(entry => {
+                            const tsid = entry.name; // Time-series ID from the data entry
+                            const valuesArray = entry.values || []; // Extract values
+                            
+                            if (Array.isArray(valuesArray) && valuesArray.length > 0) {
+                                const maxValue = Math.max(...valuesArray.map(v => v[1])); // Assuming value is at index 1
+                                const latestTime = entry.latestTime; // Get the latest timestamp
+    
+                                // Check for spike condition
+                                if (maxValue > 999 || maxValue < -9000) {
+                                    spikeData.push({ tsid, value: maxValue.toFixed(2), timestamp: latestTime });
+                                    hasDataRows = true; // Mark that we have valid data rows
+                                }
+                            }
+                        });
+                    };
+    
+                    // Check for spikes in each type of data
+                    checkForSpikes(doData, 'DO');
+                    checkForSpikes(depthData, 'Depth');
+                    checkForSpikes(tempWaterData, 'Temp-Water');
+    
+                    // Create header and subheader if we have spike data
+                    if (hasDataRows) {
+                        // Create header row for the item's ID
+                        const headerRow = document.createElement('tr');
+                        const idHeader = document.createElement('th');
+                        idHeader.colSpan = 3;
+                        idHeader.style.backgroundColor = 'darkblue';
+                        idHeader.style.color = 'white';
+                        idHeader.textContent = item.id; // Display the item's ID
+                        headerRow.appendChild(idHeader);
+                        table.appendChild(headerRow);
+    
+                        // Create subheader row for "Time Series", "Max Value", "Latest Time"
+                        const subHeaderRow = document.createElement('tr');
+                        ['Time Series', 'Max Value', 'Latest Time'].forEach(headerText => {
+                            const td = document.createElement('td');
+                            td.textContent = headerText;
+                            subHeaderRow.appendChild(td);
+                        });
+                        table.appendChild(subHeaderRow);
+                        
+                        // Append data rows for spikes
+                        spikeData.forEach(({ tsid, value, timestamp }) => {
+                            createDataRow(tsid, value, timestamp);
+                        });
+                    }
+                });
+                
+                // If no valid data rows were added, remove the last header and subheader
+                if (!hasDataRows && table.rows.length > 0) {
+                    // Check if the last two rows are header and subheader
+                    const lastRow = table.lastChild;
+                    if (lastRow && lastRow.nodeName === 'TR') {
+                        table.removeChild(lastRow); // Remove the last row (subheader)
+                    }
+                    const secondLastRow = table.lastChild;
+                    if (secondLastRow && secondLastRow.nodeName === 'TR') {
+                        table.removeChild(secondLastRow); // Remove the second last row (header)
+                    }
+                }
+            }
+        });
+    
+        return table;
+    
+        // Helper function to create data rows
+        function createDataRow(tsid, value, timestamp) {
+            const dataRow = document.createElement('tr');
+    
+            const nameCell = document.createElement('td');
+            nameCell.textContent = tsid;
+    
+            const lastValueCell = document.createElement('td');
+            // Wrap the value in a span with the blinking-text class
+            const valueSpan = document.createElement('span');
+            valueSpan.classList.add('blinking-text');
+            valueSpan.textContent = value;
+            lastValueCell.appendChild(valueSpan);
+    
+            const latestTimeCell = document.createElement('td');
+            latestTimeCell.textContent = timestamp;
+    
+            dataRow.appendChild(nameCell);
+            dataRow.appendChild(lastValueCell);
+            dataRow.appendChild(latestTimeCell);
+    
+            table.appendChild(dataRow);
+        }
+    } 
 });
