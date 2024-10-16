@@ -725,112 +725,125 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableDataSpike(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
-    
+
+        // Create header row for the table
+        const headerRow = document.createElement('tr');
+        const idHeader = document.createElement('th');
+        idHeader.colSpan = 4;
+        idHeader.style.backgroundColor = 'darkblue';
+        idHeader.style.color = 'white';
+        idHeader.textContent = 'Spike Data'; // General header for the table
+        headerRow.appendChild(idHeader);
+        table.appendChild(headerRow);
+
+        // Create subheader row for "Time Series", "Max Value", "Latest Time"
+        const subHeaderRow = document.createElement('tr');
+        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
+            const td = document.createElement('td');
+            td.textContent = headerText;
+            subHeaderRow.appendChild(td);
+        });
+        table.appendChild(subHeaderRow);
+
+        let hasDataRows = false; // Flag to check if any valid data rows are created
+
         data.forEach(item => {
             const assignedLocations = item['assigned-locations'];
-    
+
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
-                // Create header row for the item's ID
-                const headerRow = document.createElement('tr');
-                const idHeader = document.createElement('th');
-                idHeader.colSpan = 3;
-                idHeader.style.backgroundColor = 'darkblue';
-                idHeader.style.color = 'white';
-                idHeader.textContent = item.id; // Display the item's ID
-                headerRow.appendChild(idHeader);
-                table.appendChild(headerRow);
-    
-                // Create subheader row for "Time Series", "Max Value", "Latest Time"
-                const subHeaderRow = document.createElement('tr');
-                ['Time Series', 'Max Value', 'Latest Time'].forEach(headerText => {
-                    const td = document.createElement('td');
-                    td.textContent = headerText;
-                    subHeaderRow.appendChild(td);
-                });
-                table.appendChild(subHeaderRow);
-    
-                let hasDataRows = false; // Flag to check if any valid data rows are created
-    
                 // Process each assigned location
                 assignedLocations.forEach(location => {
                     const datmanData = location['extents-data']?.['datman'] || [];
-    
+
                     // Process Datman data
                     datmanData.forEach(datmanEntry => {
                         const tsid = datmanEntry.name; // Time-series ID from extents-data
-    
-                        // Safely access 'datman-api-data' and find the maximum value
+
+                        // Safely access 'datman-api-data' and find the maximum and minimum values
                         const datmanApiData = location['datman-api-data'];
                         let maxDatmanValue = null;
-    
+                        let minDatmanValue = null;
+
                         if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
                             const valuesArray = datmanApiData[0].values;
-    
+
                             if (Array.isArray(valuesArray)) {
                                 maxDatmanValue = Math.max(...valuesArray.map(entry => entry[1])); // Assuming value is at index 1
+                                minDatmanValue = Math.min(...valuesArray.map(entry => entry[1])); // Assuming value is at index 1
                             }
                         }
-    
-                        // Check if we found a valid maxDatmanValue
+
+                        console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
+                        console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
+
+                        // Check if we found valid max and min values
                         let dateTimeDatman = datmanEntry.latestTime; // Use latestTime for the timestamp
-                        if (maxDatmanValue !== undefined && maxDatmanValue !== null) {
+                        if (maxDatmanValue !== undefined && maxDatmanValue !== null && minDatmanValue !== undefined && minDatmanValue !== null) {
                             maxDatmanValue = parseFloat(maxDatmanValue).toFixed(2); // Format to two decimal places
-    
-                            // Only create a row if maxDatmanValue is > 900 or < -900
-                            if (maxDatmanValue > 900 || maxDatmanValue < -900) {
-                                createDataRow(tsid, maxDatmanValue, dateTimeDatman);
+                            minDatmanValue = parseFloat(minDatmanValue).toFixed(2); // Format to two decimal places
+
+                            // Only create a row if either value exceeds the threshold
+                            if (maxDatmanValue > 900 || maxDatmanValue < -900 || minDatmanValue > 900 || minDatmanValue < -900) {
+                                createDataRow(tsid, maxDatmanValue, minDatmanValue, dateTimeDatman);
                                 hasDataRows = true; // Mark that we have valid data rows
                             }
                         }
                     });
-    
-                    // If no data available for temp-water, depth, and do
+
+                    // If no valid data rows were added for this location, add a "No Data Available" row
                     if (datmanData.length === 0) {
                         const dataRow = document.createElement('tr');
-    
                         const nameCell = document.createElement('td');
                         nameCell.textContent = 'No Data Available';
                         nameCell.colSpan = 3; // Span across all three columns
-    
                         dataRow.appendChild(nameCell);
                         table.appendChild(dataRow);
                     }
                 });
-    
-                // If no valid data rows were added, remove the last header and subheader
-                if (!hasDataRows) {
-                    table.removeChild(headerRow);
-                    table.removeChild(subHeaderRow);
-                }
             }
         });
-    
+
+        // If no valid data rows were added, you may want to add a message or handle it as appropriate
+        if (!hasDataRows) {
+            const noDataRow = document.createElement('tr');
+            const noDataCell = document.createElement('td');
+            noDataCell.textContent = 'No Spikes Detected';
+            noDataCell.colSpan = 3; // Span across all three columns
+            noDataRow.appendChild(noDataCell);
+            table.appendChild(noDataRow);
+        }
+
         return table;
-    
+
         // Helper function to create data rows
-        function createDataRow(tsid, value, timestamp) {
+        function createDataRow(tsid, maxValue, minValue, timestamp) {
             const dataRow = document.createElement('tr');
-    
+
             const nameCell = document.createElement('td');
             nameCell.textContent = tsid;
-    
-            const lastValueCell = document.createElement('td');
-            // Wrap the value in a span with the blinking-text class
-            const valueSpan = document.createElement('span');
-            valueSpan.classList.add('blinking-text');
-            valueSpan.textContent = value;
-            lastValueCell.appendChild(valueSpan);
-    
+
+            const maxValueCell = document.createElement('td');
+            const maxValueSpan = document.createElement('span');
+            maxValueSpan.classList.add('blinking-text');
+            maxValueSpan.textContent = maxValue;
+            maxValueCell.appendChild(maxValueSpan);
+
+            const minValueCell = document.createElement('td');
+            const minValueSpan = document.createElement('span');
+            minValueSpan.classList.add('blinking-text');
+            minValueSpan.textContent = minValue;
+            minValueCell.appendChild(minValueSpan);
+
             const latestTimeCell = document.createElement('td');
             latestTimeCell.textContent = timestamp;
-    
+
             dataRow.appendChild(nameCell);
-            dataRow.appendChild(lastValueCell);
+            dataRow.appendChild(maxValueCell);
+            dataRow.appendChild(minValueCell);
             dataRow.appendChild(latestTimeCell);
-    
+
             table.appendChild(dataRow);
         }
     }
-       
 });
