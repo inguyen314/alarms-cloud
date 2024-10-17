@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Check if there are valid lastDatmanValues in the data
                     if (hasLastValue(combinedData)) {
-                        console.log("Last value detected. calling hasDataSpike");
+                        console.log("Last value detected for all entries. calling hasDataSpike");
                         if (hasDataSpike(combinedData)) {
                             console.log("Data spike detected. calling createTableDataSpike");
                             // call createTable if data spike exists
@@ -503,13 +503,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             container.appendChild(img);
                         }
                     } else {
-                        // console.log("No last value and no data spike detected.");
-                        // // Only call createTable if no valid data exists
-                        // const table = createTable(combinedData);
+                        console.log("Some last value not detected, calling createTable");
+                        // Only call createTable if no valid data exists
+                        const table = createTable(combinedData);
 
-                        // // Append the table to the specified container
-                        // const container = document.getElementById('table_container_alarm_water_quality');
-                        // container.appendChild(table);
+                        // Append the table to the specified container
+                        const container = document.getElementById('table_container_alarm_water_quality');
+                        container.appendChild(table);
                     }
 
                     loadingIndicator.style.display = 'none';
