@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Get the current date and time, and compute a "look-back" time for historical data
     const currentDateTime = new Date();
-    const lookBackHours = subtractHoursFromDate(new Date(), 10); // Subtract 12 hours from the current time
+    const lookBackHours = subtractHoursFromDate(new Date(), 25); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -346,8 +346,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             if (!locData[maxValueKey]) {
                                                 locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
-
-                                            // TODO: get the right value for "Min Value"
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
