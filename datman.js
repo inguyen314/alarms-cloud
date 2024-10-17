@@ -262,16 +262,54 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 return; // Early return if the type is unknown
                                             }
 
+                                            let maxValueKey;
+                                            if (type === 'datman') {
+                                                maxValueKey = 'datman-max-value'; 
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let minValueKey;
+                                            if (type === 'datman') {
+                                                minValueKey = 'datman-min-value'; 
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
                                             if (!locData[lastValueKey]) {
                                                 locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[maxValueKey]) {
+                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[minValueKey]) {
+                                                locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
 
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
 
+                                            // Get and store the last max value for the specific tsid
+                                            const maxValue = getMaxValue(data, tsid);
+                                            // console.log("maxValue: ", maxValue);
+
+                                            // Get and store the last min value for the specific tsid
+                                            const minValue = getMinValue(data, tsid);
+                                            // console.log("minValue: ", minValue);
+
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
+                                            locData[maxValueKey].push(maxValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
+                                            locData[minValueKey].push(minValue);
 
                                         })
 
@@ -357,16 +395,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Check and remove all attribute ending in 0.1
                     combinedData.forEach((dataObj, index) => {
-                        console.log(`Processing dataObj at index ${index}:`, dataObj[`assigned-locations`]);
+                        // console.log(`Processing dataObj at index ${index}:`, dataObj[`assigned-locations`]);
 
                         // Filter out locations where the 'attribute' ends with '.1'
                         dataObj[`assigned-locations`] = dataObj[`assigned-locations`].filter(location => {
                             const attribute = location[`attribute`].toString();
-                            console.log(`Checking attribute: ${attribute}`);
+                            // console.log(`Checking attribute: ${attribute}`);
                             return !attribute.endsWith('.1');
                         });
 
-                        console.log(`Updated assigned-locations for index ${index}:`, dataObj[`assigned-locations`]);
+                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj[`assigned-locations`]);
                     });
 
                     console.log('All combinedData data filtered successfully:', combinedData);
@@ -511,6 +549,56 @@ document.addEventListener('DOMContentLoaded', async function () {
         return null;
     }
 
+    function getMaxValue(data, tsid) {
+        let maxValue = -Infinity; // Start with the smallest possible value
+        let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
+    
+        // Loop through the values array
+        for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // Update maxValue and maxEntry if the current value is greater
+                if (data.values[i][1] > maxValue) {
+                    maxValue = data.values[i][1];
+                    maxEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
+                }
+            }
+        }
+    
+        // Return the max entry (or null if no valid values were found)
+        return maxEntry;
+    }
+
+    function getMinValue(data, tsid) {
+        let minValue = Infinity; // Start with the largest possible value
+        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
+    
+        // Loop through the values array
+        for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // Update minValue and minEntry if the current value is smaller
+                if (data.values[i][1] < minValue) {
+                    minValue = data.values[i][1];
+                    minEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
+                }
+            }
+        }
+    
+        // Return the min entry (or null if no valid values were found)
+        return minEntry;
+    }
+    
     function hasLastValue(data) {
         let allLocationsValid = true; // Flag to track if all locations are valid
 
@@ -518,7 +606,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
@@ -531,7 +619,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
                     const datmanLastValueArray = location['datman-last-value'];
 
@@ -539,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     let hasValidValue = false;
 
                     if (Array.isArray(datmanLastValueArray)) {
-                        console.log('datman-last-value array found:', datmanLastValueArray);
+                        // console.log('datman-last-value array found:', datmanLastValueArray);
                         // Check all entries in the array for valid values (not 'N/A' and within the range -999 to 999)
                         const validDatmanEntries = datmanLastValueArray.filter(entry =>
                             entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
@@ -590,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
     
                     const datmanApiData = location['datman-api-data'];
     
@@ -609,8 +697,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         });
     
                         // Log the max and min values for the location
-                        console.log(`Max value for location ${locationName}:`, maxValue);
-                        console.log(`Min value for location ${locationName}:`, minValue);
+                        // console.log(`Max value for location ${locationName}:`, maxValue);
+                        // console.log(`Min value for location ${locationName}:`, minValue);
     
                         // Check if the max value exceeds 999 or the min value is less than -999
                         if (maxValue > 999 || minValue < -999) {
@@ -777,8 +865,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
 
-                        console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
-                        console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
+                        // console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
+                        // console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
 
                         // Check if we found valid max and min values
                         let dateTimeDatman = datmanEntry.latestTime; // Use latestTime for the timestamp
