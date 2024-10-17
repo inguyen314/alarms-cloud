@@ -21,12 +21,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const metadataMap = new Map();
+    const ownerMap = new Map();
     const tsidTempWaterMap = new Map();
     const tsidDepthMap = new Map();
     const tsidDoMap = new Map();
 
     // Initialize arrays for storing promises
     const metadataPromises = [];
+    const ownerPromises = [];
     const tempWaterTsidPromises = [];
     const depthTsidPromises = [];
     const doTsidPromises = [];
@@ -117,6 +119,33 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             })
                                     );
 
+                                    // Fetch owner for each location
+                                    let ownerApiUrl = setBaseUrl + `location/group/${office}?office=${office}&category-id=${office}`;
+                                    if (ownerApiUrl) {
+                                        ownerPromises.push(
+                                            fetch(ownerApiUrl)
+                                                .then(response => {
+                                                    if (response.status === 404) {
+                                                        console.warn(`Temp-Water TSID data not found for location: ${loc['location-id']}`);
+                                                        return null;
+                                                    }
+                                                    if (!response.ok) {
+                                                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                    }
+                                                    return response.json();
+                                                })
+                                                .then(ownerData => {
+                                                    if (ownerData) {
+                                                        console.log("ownerData", ownerData);
+                                                        ownerMap.set(loc['location-id'], ownerData);
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error(`Problem with the fetch operation for stage TSID data at ${ownerApiUrl}:`, error);
+                                                })
+                                        );
+                                    }
+
                                     // Fetch temperature water TSID data
                                     const tsidTempWaterApiUrl = setBaseUrl + `timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
                                     console.log("tsidTempWaterApiUrl: ", tsidTempWaterApiUrl);
@@ -191,6 +220,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
                 .then(() => Promise.all(metadataPromises))
+                .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(tempWaterTsidPromises))
                 .then(() => Promise.all(depthTsidPromises))
                 .then(() => Promise.all(doTsidPromises))
@@ -204,6 +234,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const metadataMapData = metadataMap.get(loc['location-id']);
                                 if (metadataMapData) {
                                     loc['metadata'] = metadataMapData;
+                                }
+
+                                // Add owner to json
+                                const ownerMapData = ownerMap.get(loc['location-id']);
+                                if (ownerMapData) {
+                                    loc['owner'] = ownerMapData;
                                 }
 
                                 // Add temp-water to json
