@@ -478,12 +478,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         console.log("Last value detected. calling hasDataSpike");
                         if (hasDataSpike(combinedData)) {
                             console.log("Data spike detected. calling createTableDataSpike");
-                            //     // call createTable if data spike exists
-                            //     const table = createTableDataSpike(combinedData);
+                            // call createTable if data spike exists
+                            const table = createTableDataSpike(combinedData);
 
-                            //     // Append the table to the specified container
-                            //     const container = document.getElementById('table_container_alarm_water_quality');
-                            // container.appendChild(table);
+                            // Append the table to the specified container
+                            const container = document.getElementById('table_container_alarm_water_quality');
+                            container.appendChild(table);
                         } else {
                             //     console.log("No data spikes detected.");
                             //     console.log('Valid lastDatmanValue found. Displaying image instead.');
@@ -962,37 +962,47 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 // Process each assigned location
                 assignedLocations.forEach(location => {
-                    const doData = location['do-api-data'] || []; // Fetch DO API data
-                    const depthData = location['depth-api-data'] || []; // Fetch Depth API data
-                    const tempWaterData = location['temp-water-api-data'] || []; // Fetch Temp-Water API data
+                    const tempWaterMaxData = location['temp-water-max-value'] || [];
+                    const depthMaxData = location['depth-max-value'] || [];
+                    const doMaxData = location['do-max-value'] || [];
+
+                    const tempWaterMinData = location['temp-water-min-value'] || [];
+                    const depthMinData = location['depth-min-value'] || [];
+                    const doMinData = location['do-min-value'] || [];
 
                     // Temporary storage for data entries to check for spikes
                     const spikeData = [];
 
-                    // Check each data type for spikes
-                    const checkForSpikes = (dataArray, type) => {
-                        dataArray.forEach(entry => {
-                            const tsid = entry.name; // Time-series ID from the data entry
-                            const valuesArray = entry.values || []; // Extract values
+                    // Check each data type for spikes, with both min and max values
+                    const checkForSpikes = (minDataArray, maxDataArray, type) => {
+                        minDataArray.forEach((minEntry, index) => {
+                            const tsid = minEntry.tsid;
+                            const minValue = parseFloat(minEntry.value); // Get min value
+                            const maxEntry = maxDataArray[index];
+                            const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
+                            const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
 
-                            if (Array.isArray(valuesArray) && valuesArray.length > 0) {
-                                const maxValue = Math.max(...valuesArray.map(v => v[1])); // Assuming value is at index 1
-                                const minValue = Math.min(...valuesArray.map(v => v[1])); // Assuming value is at index 1
-                                const latestTime = entry.latestTime; // Get the latest timestamp
-
-                                // Check for spike condition
-                                if (maxValue > 999 || maxValue < -9000 || minValue > 999 || minValue < -9000) {
-                                    spikeData.push({ tsid, maxValue: maxValue.toFixed(2), minValue: minValue.toFixed(2), timestamp: latestTime });
-                                    hasDataRows = true; // Mark that we have valid data rows
-                                }
+                            // Check for spike condition (both min and max)
+                            if (maxValue > 999 || minValue < -999) {
+                                spikeData.push({
+                                    tsid,
+                                    maxValue: maxValue.toFixed(2),
+                                    minValue: minValue.toFixed(2),
+                                    timestamp: latestTime
+                                });
+                                hasDataRows = true; // Mark that we have valid data rows
                             }
                         });
                     };
 
                     // Check for spikes in each type of data
-                    checkForSpikes(doData, 'DO');
-                    checkForSpikes(depthData, 'Depth');
-                    checkForSpikes(tempWaterData, 'Temp-Water');
+                    checkForSpikes(tempWaterMinData, tempWaterMaxData, 'Temp-Water');
+                    checkForSpikes(depthMinData, depthMaxData, 'Depth');
+                    checkForSpikes(doMinData, doMaxData, 'DO');
+
+                    // Log the collected spike data for debugging
+                    console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
+                    console.log("hasDataRows: ", hasDataRows);
 
                     // Create header and subheader if we have spike data
                     if (hasDataRows) {
@@ -1021,21 +1031,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                         });
                     }
                 });
-
-                // If no valid data rows were added, remove the last header and subheader
-                if (!hasDataRows && table.rows.length > 0) {
-                    // Check if the last two rows are header and subheader
-                    const lastRow = table.lastChild;
-                    if (lastRow && lastRow.nodeName === 'TR') {
-                        table.removeChild(lastRow); // Remove the last row (subheader)
-                    }
-                    const secondLastRow = table.lastChild;
-                    if (secondLastRow && secondLastRow.nodeName === 'TR') {
-                        table.removeChild(secondLastRow); // Remove the second last row (header)
-                    }
-                }
             }
         });
+
 
         return table;
 
