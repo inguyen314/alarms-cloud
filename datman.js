@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             let maxValueKey;
                                             if (type === 'datman') {
-                                                maxValueKey = 'datman-max-value'; 
+                                                maxValueKey = 'datman-max-value';
                                             } else {
                                                 console.error('Unknown type:', type);
                                                 return; // Early return if the type is unknown
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             let minValueKey;
                                             if (type === 'datman') {
-                                                minValueKey = 'datman-min-value'; 
+                                                minValueKey = 'datman-min-value';
                                             } else {
                                                 console.error('Unknown type:', type);
                                                 return; // Early return if the type is unknown
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     function getMaxValue(data, tsid) {
         let maxValue = -Infinity; // Start with the smallest possible value
         let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
-    
+
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
             // Check if the value at index i is not null
@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
         }
-    
+
         // Return the max entry (or null if no valid values were found)
         return maxEntry;
     }
@@ -577,7 +577,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     function getMinValue(data, tsid) {
         let minValue = Infinity; // Start with the largest possible value
         let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
-    
+
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
             // Check if the value at index i is not null
@@ -594,11 +594,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
         }
-    
+
         // Return the min entry (or null if no valid values were found)
         return minEntry;
     }
-    
+
     function hasLastValue(data) {
         let allLocationsValid = true; // Flag to track if all locations are valid
 
@@ -634,10 +634,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                         );
 
                         if (validDatmanEntries.length > 0) {
-                            console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
+                            // console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
                             hasValidValue = true;
                         } else {
-                            console.log(`No valid datman entries found in location ${locationName}.`);
+                            // console.log(`No valid datman entries found in location ${locationName}.`);
                         }
                     } else {
                         console.log(`No datman-last-value array found in location ${locationName}.`);
@@ -661,32 +661,32 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    function hasDataSpike(data) {
+    function hasDataSpikeInApiDataArray(data) {
         // Iterate through each key in the data object
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-    
+                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
                     console.log('No assigned-locations found in basin:', item);
                     continue; // Skip to the next basin
                 }
-    
+
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
                     // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-    
+
                     const datmanApiData = location['datman-api-data'];
-    
+
                     // Check if 'datman-api-data' exists and has a 'values' array
                     if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
                         let maxValue = -Infinity; // Initialize to a very low value
                         let minValue = Infinity; // Initialize to a very high value
-    
+
                         // Iterate through the 'values' array and find the max and min values
                         datmanApiData[0]['values'].forEach(valueEntry => {
                             const currentValue = parseFloat(valueEntry[1]);
@@ -695,14 +695,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 minValue = Math.min(minValue, currentValue);
                             }
                         });
-    
+
                         // Log the max and min values for the location
                         // console.log(`Max value for location ${locationName}:`, maxValue);
                         // console.log(`Min value for location ${locationName}:`, minValue);
-    
+
                         // Check if the max value exceeds 999 or the min value is less than -999
                         if (maxValue > 999 || minValue < -999) {
-                            console.log(`Data spike detected in location ${locationName}: max = ${maxValue}, min = ${minValue}`);
+                            // console.log(`Data spike detected in location ${locationName}: max = ${maxValue}, min = ${minValue}`);
                             return true; // Return true if any spike is found
                         }
                     } else {
@@ -711,11 +711,55 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
         }
-    
+
         // Return false if no data spikes were found
         console.log('No data spikes detected in any location.');
         return false;
-    }    
+    }
+
+    function hasDataSpike(data) {
+        // Iterate through each key in the data object
+        for (const locationIndex in data) {
+            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
+                const item = data[locationIndex];
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+
+                const assignedLocations = item['assigned-locations'];
+                // Check if assigned-locations is an object
+                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
+                    console.log('No assigned-locations found in basin:', item);
+                    continue; // Skip to the next basin
+                }
+
+                // Iterate through each location in assigned-locations
+                for (const locationName in assignedLocations) {
+                    const location = assignedLocations[locationName];
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    const datmanMaxValue = location['datman-max-value'][0][`value`];
+                    const datmanMinValue = location['datman-min-value'][0][`value`];
+
+                    // Check if datmanMaxValue or datmanMinValue exists
+                    if (datmanMaxValue || datmanMinValue) {
+                        // Check if the max value exceeds 999 or the min value is less than -999
+                        if (datmanMaxValue > 999) {
+                            console.log(`Data spike detected in location ${locationName}: max = ${datmanMaxValue}`);
+                            return true; // Return true if any spike is found
+                        }
+                        if (datmanMinValue < -999) {
+                            console.log(`Data spike detected in location ${locationName}: min = ${datmanMinValue}`);
+                            return true; // Return true if any spike is found
+                        }
+                    } else {
+                        console.log(`No valid 'datman-max-value' or 'datman-min-value' found in location ${locationName}.`);
+                    }
+                }
+            }
+        }
+
+        // Return false if no data spikes were found
+        console.log('No data spikes detected in any location.');
+        return false;
+    }
 
     function createTable(data) {
         const table = document.createElement('table');
@@ -851,19 +895,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     datmanData.forEach(datmanEntry => {
                         const tsid = datmanEntry.name; // Time-series ID from extents-data
 
-                        // Safely access 'datman-api-data' and find the maximum and minimum values
-                        const datmanApiData = location['datman-api-data'];
                         let maxDatmanValue = null;
                         let minDatmanValue = null;
 
-                        if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
-                            const valuesArray = datmanApiData[0].values;
-
-                            if (Array.isArray(valuesArray)) {
-                                maxDatmanValue = Math.max(...valuesArray.map(entry => entry[1])); // Assuming value is at index 1
-                                minDatmanValue = Math.min(...valuesArray.map(entry => entry[1])); // Assuming value is at index 1
-                            }
-                        }
+                        maxDatmanValue = location['datman-max-value'][0][`value`];
+                        minDatmanValue = location['datman-min-value'][0][`value`];
 
                         // console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
                         // console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
