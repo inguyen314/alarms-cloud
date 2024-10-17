@@ -475,37 +475,38 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Check if there are valid lastDatmanValues in the data
                     if (hasLastValue(combinedData)) {
+                        console.log("Last value detected. calling hasDataSpike");
                         if (hasDataSpike(combinedData)) {
                             console.log("Data spike detected. calling createTableDataSpike");
-                            // call createTable if data spike exists
-                            const table = createTableDataSpike(combinedData);
+                            //     // call createTable if data spike exists
+                            //     const table = createTableDataSpike(combinedData);
 
-                            // Append the table to the specified container
-                            const container = document.getElementById('table_container_alarm_water_quality');
-                            container.appendChild(table);
+                            //     // Append the table to the specified container
+                            //     const container = document.getElementById('table_container_alarm_water_quality');
+                            // container.appendChild(table);
                         } else {
-                            console.log("No data spikes detected.");
-                            console.log('Valid lastDatmanValue found. Displaying image instead.');
+                            //     console.log("No data spikes detected.");
+                            //     console.log('Valid lastDatmanValue found. Displaying image instead.');
 
-                            // Create an img element
-                            const img = document.createElement('img');
-                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                            img.alt = 'Process Completed'; // Optional alt text for accessibility
-                            img.style.width = '50px'; // Optional: set the image width
-                            img.style.height = '50px'; // Optional: set the image height
+                            //     // Create an img element
+                            //     const img = document.createElement('img');
+                            //     img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                            //     img.alt = 'Process Completed'; // Optional alt text for accessibility
+                            //     img.style.width = '50px'; // Optional: set the image width
+                            //     img.style.height = '50px'; // Optional: set the image height
 
-                            // Get the container and append the image
-                            const container = document.getElementById('table_container_alarm_water_quality');
-                            container.appendChild(img);
+                            //     // Get the container and append the image
+                            //     const container = document.getElementById('table_container_alarm_water_quality');
+                            //     container.appendChild(img);
                         }
                     } else {
-                        console.log("No last value and no data spike detected.");
-                        // Only call createTable if no valid data exists
-                        const table = createTable(combinedData);
+                        // console.log("No last value and no data spike detected.");
+                        // // Only call createTable if no valid data exists
+                        // const table = createTable(combinedData);
 
-                        // Append the table to the specified container
-                        const container = document.getElementById('table_container_alarm_water_quality');
-                        container.appendChild(table);
+                        // // Append the table to the specified container
+                        // const container = document.getElementById('table_container_alarm_water_quality');
+                        // container.appendChild(table);
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -664,12 +665,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    // console.log('No assigned-locations found in basin:', item);
+                    console.log('No assigned-locations found in basin:', item);
                     allLocationsValid = false; // Mark as invalid since no assigned locations are found
                     continue; // Skip to the next basin
                 }
@@ -677,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
                     const tempWaterLastValueArray = location['temp-water-last-value'];
                     const depthLastValueArray = location['depth-last-value'];
@@ -745,7 +746,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
@@ -757,40 +758,55 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
-                    const extentsData = location['extents-data'];
-                    const tempWaterData = extentsData?.['temp-water'] || [];
-                    const depthData = extentsData?.['depth'] || [];
-                    const doData = extentsData?.['do'] || [];
+                    const minTempWaterData = location['temp-water-min-value'];
+                    console.log("minTempWaterData: ", minTempWaterData);
+
+                    const minDepthData = location['depth-min-value'];
+                    console.log("minDepthData: ", minDepthData);
+
+                    const minDoData = location['do-min-value'];
+                    console.log("minDoData: ", minDoData);
+
+                    const maxTempWaterData = location['temp-water-max-value'];
+                    console.log("maxTempWaterData: ", maxTempWaterData);
+
+                    const maxDepthData = location['depth-max-value'];
+                    console.log("maxDepthData: ", maxDepthData);
+
+                    const maxDoData = location['do-max-value'];
+                    console.log("maxDoData: ", maxDoData);
+
 
                     // Helper function to check for data spikes in a given data array
                     const checkForSpikes = (dataArray, dataType) => {
-                        let maxValue = -Infinity; // Initialize to a very low value
+                        let spikeDetected = false;
 
-                        // Iterate through the data array and find the max value
+                        // Iterate through the data array and find any value exceeding limits
                         dataArray.forEach(entry => {
-                            const currentValue = parseFloat(entry.value); // Assuming the value is stored in the 'value' property
-                            if (!isNaN(currentValue)) {
-                                maxValue = Math.max(maxValue, currentValue);
+                            const value = parseFloat(entry.value); // Assuming the value is stored in the 'value' property
+                            console.log(`Checking ${dataType} value: `, value);
+
+                            // Check if the value exceeds 999 or is less than -9000
+                            if (value > 999 || value < -999) {
+                                console.log(`Data spike detected in location ${locationName}: ${dataType} value = ${value}`);
+                                spikeDetected = true; // Spike detected
                             }
                         });
 
-                        // Log the max value for the current data type
-                        // console.log(`Max ${dataType} value for location ${locationName}:`, maxValue);
-
-                        // Check if the max value exceeds 999 or is less than -9000
-                        if (maxValue > 999 || maxValue < -9000) {
-                            // console.log(`Data spike detected in location ${locationName}: ${dataType} value = ${maxValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                        return false; // No spike found
+                        return spikeDetected; // Return true if any spike is found
                     };
 
                     // Check for spikes in temperature water, depth, and DO data
-                    if (checkForSpikes(tempWaterData, 'temperature water') ||
-                        checkForSpikes(depthData, 'depth') ||
-                        checkForSpikes(doData, 'DO')) {
+                    if (checkForSpikes(minTempWaterData, 'temp-water-min') ||
+                        checkForSpikes(maxTempWaterData, 'temp-water-max') ||
+
+                        checkForSpikes(minDepthData, 'depth-min') ||
+                        checkForSpikes(maxDepthData, 'depth-max') ||
+
+                        checkForSpikes(minDoData, 'depth-min') ||
+                        checkForSpikes(maxDoData, 'depth-max')) {
                         return true; // Return true if any spike is found
                     }
                 }
