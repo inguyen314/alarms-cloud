@@ -995,27 +995,32 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableDataSpike(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
-
+    
         data.forEach(item => {
             const assignedLocations = item['assigned-locations'];
-
+    
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
                 let hasDataRows = false; // Flag to check if any valid data rows are created
-
+    
                 // Process each assigned location
                 assignedLocations.forEach(location => {
                     const tempWaterMaxData = location['temp-water-max-value'] || [];
                     const depthMaxData = location['depth-max-value'] || [];
                     const doMaxData = location['do-max-value'] || [];
-
+    
                     const tempWaterMinData = location['temp-water-min-value'] || [];
                     const depthMinData = location['depth-min-value'] || [];
                     const doMinData = location['do-min-value'] || [];
-
+    
+                    const ownerData = location['owner'][`assigned-locations`] || [];
+                    const locationIdData = location['location-id'] || [];
+                    console.log("ownerData: ", ownerData);
+                    console.log("locationIdData: ", locationIdData);
+    
                     // Temporary storage for data entries to check for spikes
                     const spikeData = [];
-
+    
                     // Check each data type for spikes, with both min and max values
                     const checkForSpikes = (minDataArray, maxDataArray, type) => {
                         minDataArray.forEach((minEntry, index) => {
@@ -1024,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const maxEntry = maxDataArray[index];
                             const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
                             const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
-
+    
                             // Check for spike condition (both min and max)
                             if (maxValue > 999 || minValue < -999) {
                                 spikeData.push({
@@ -1037,16 +1042,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         });
                     };
-
+    
                     // Check for spikes in each type of data
                     checkForSpikes(tempWaterMinData, tempWaterMaxData, 'Temp-Water');
                     checkForSpikes(depthMinData, depthMaxData, 'Depth');
                     checkForSpikes(doMinData, doMaxData, 'DO');
-
+    
                     // Log the collected spike data for debugging
                     console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
                     console.log("hasDataRows: ", hasDataRows);
-
+    
                     // Create header and subheader if we have spike data
                     if (hasDataRows) {
                         // Create header row for the item's ID
@@ -1058,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         idHeader.textContent = item.id; // Display the item's ID
                         headerRow.appendChild(idHeader);
                         table.appendChild(headerRow);
-
+    
                         // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
                         const subHeaderRow = document.createElement('tr');
                         ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
@@ -1067,49 +1072,55 @@ document.addEventListener('DOMContentLoaded', async function () {
                             subHeaderRow.appendChild(td);
                         });
                         table.appendChild(subHeaderRow);
-
+    
                         // Append data rows for spikes
                         spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
-                            createDataRow(tsid, maxValue, minValue, timestamp);
+                            createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData);
                         });
                     }
                 });
             }
         });
-
-
+    
         return table;
-
+    
         // Helper function to create data rows
-        function createDataRow(tsid, maxValue, minValue, timestamp) {
+        function createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData) {
             const dataRow = document.createElement('tr');
-
+    
             const nameCell = document.createElement('td');
             nameCell.textContent = tsid;
-
+    
+            // Check if locationIdData matches any entry in ownerData
+            const isMatch = ownerData.some(owner => owner['location-id'] === locationIdData);
+            if (isMatch) {
+                nameCell.style.color = 'darkblue'; // Apply dark blue color if there's a match
+            }
+    
             const maxValueCell = document.createElement('td');
             // Wrap the max value in a span with the blinking-text class
             const maxValueSpan = document.createElement('span');
             maxValueSpan.classList.add('blinking-text');
             maxValueSpan.textContent = maxValue;
             maxValueCell.appendChild(maxValueSpan);
-
+    
             const minValueCell = document.createElement('td');
             // Wrap the min value in a span with the blinking-text class
             const minValueSpan = document.createElement('span');
             minValueSpan.classList.add('blinking-text');
             minValueSpan.textContent = minValue;
             minValueCell.appendChild(minValueSpan);
-
+    
             const latestTimeCell = document.createElement('td');
             latestTimeCell.textContent = timestamp;
-
+    
             dataRow.appendChild(nameCell);
             dataRow.appendChild(maxValueCell);
             dataRow.appendChild(minValueCell);
             dataRow.appendChild(latestTimeCell);
-
+    
             table.appendChild(dataRow);
         }
     }
+    
 });
