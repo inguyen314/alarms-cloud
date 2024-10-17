@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Get the current date and time, and compute a "look-back" time for historical data
     const currentDateTime = new Date();
-    const lookBackHours = subtractHoursFromDate(new Date(), 8); // Subtract 12 hours from the current time
+    const lookBackHours = subtractHoursFromDate(new Date(), 10); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
 
+                                            // TODO: get the right value for "Min Value"
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
@@ -364,10 +365,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             locData[lastValueKey].push(lastValue);
 
                                             // Push an empty array [] if minValue is null, otherwise push the actual minValue
-                                            locData[minValueKey].push(minValue);
+                                            if (minValue) {
+                                                locData[minValueKey].push(minValue);
+                                            }
 
                                             // Push an empty array [] if minValue is null, otherwise push the actual minValue
-                                            locData[maxValueKey].push(maxValue);
+                                            if (maxValue) {
+                                                locData[maxValueKey].push(maxValue);
+                                            }
                                         })
                                         .catch(error => {
                                             console.error(`Error fetching additional data for location ${locData['location-id']} with TSID ${tsid}:`, error);
@@ -485,19 +490,19 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const container = document.getElementById('table_container_alarm_water_quality');
                             container.appendChild(table);
                         } else {
-                            //     console.log("No data spikes detected.");
-                            //     console.log('Valid lastDatmanValue found. Displaying image instead.');
+                            console.log("No data spikes detected.");
+                            console.log('Valid lastDatmanValue found. Displaying image instead.');
 
-                            //     // Create an img element
-                            //     const img = document.createElement('img');
-                            //     img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                            //     img.alt = 'Process Completed'; // Optional alt text for accessibility
-                            //     img.style.width = '50px'; // Optional: set the image width
-                            //     img.style.height = '50px'; // Optional: set the image height
+                            // Create an img element
+                            const img = document.createElement('img');
+                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                            img.alt = 'Process Completed'; // Optional alt text for accessibility
+                            img.style.width = '50px'; // Optional: set the image width
+                            img.style.height = '50px'; // Optional: set the image height
 
-                            //     // Get the container and append the image
-                            //     const container = document.getElementById('table_container_alarm_water_quality');
-                            //     container.appendChild(img);
+                            // Get the container and append the image
+                            const container = document.getElementById('table_container_alarm_water_quality');
+                            container.appendChild(img);
                         }
                     } else {
                         // console.log("No last value and no data spike detected.");
@@ -611,51 +616,55 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function getMaxValue(data, tsid) {
+        let maxEntry = null;
+
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update maxValue and maxEntry if the current value is greater
-                return {
-                    tsid: tsid,
-                    timestamp: data.values[i][0],
-                    value: data.values[i][1],
-                    qualityCode: data.values[i][2]
-                };
-            }
+            // Check if the value at index i is not null and within a reasonable range
+            // if (data.values[i][1] !== null && data.values[i][1] > 99999) { // Adjust threshold as necessary
+                // Check if the value at index i is not null
+                if (data.values[i][1] !== null) {
+                    // If maxEntry is null or the current value is greater than the maxEntry's value
+                    if (maxEntry === null || data.values[i][1] > maxEntry.value) {
+                        maxEntry = {
+                            tsid: tsid,
+                            timestamp: data.values[i][0],
+                            value: data.values[i][1],
+                            qualityCode: data.values[i][2]
+                        };
+                    }
+                }
+            // }
         }
 
         // Return the max entry (or null if no valid values were found)
-        return null;
+        return maxEntry;
     }
 
     function getMinValue(data, tsid) {
-        if (!data || !data.values || data.values.length === 0) {
-            return null; // Return null if data is null, undefined, or has no values
-        }
-
-        let minValue = Infinity; // Start with the largest possible value
-        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
+        let minEntry = null;
 
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update minValue and minEntry if the current value is smaller
-                if (data.values[i][1] < minValue) {
-                    minValue = data.values[i][1];
-                    minEntry = {
-                        tsid: tsid,
-                        timestamp: data.values[i][0],
-                        value: data.values[i][1],
-                        qualityCode: data.values[i][2]
-                    };
+            // Check if the value at index i is not null and within a reasonable range
+            // if (data.values[i][1] !== null && data.values[i][1] < 99999) { // Adjust threshold as necessary
+                // Check if the value at index i is not null
+                if (data.values[i][1] !== null) {
+                    // If minEntry is null or the current value is smaller than the minEntry's value
+                    if (minEntry === null || data.values[i][1] < minEntry.value) {
+                        minEntry = {
+                            tsid: tsid,
+                            timestamp: data.values[i][0],
+                            value: data.values[i][1],
+                            qualityCode: data.values[i][2]
+                        };
+                    }
                 }
-            }
-        }
+            // }
 
-        // Return the min entry (or null if no valid values were found)
-        return minEntry;
+            // Return the min entry (or null if no valid values were found)
+            return minEntry;
+        }
     }
 
     function hasLastValue(data) {
