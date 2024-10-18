@@ -830,10 +830,17 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     const lastValueCell = document.createElement('td');
 
-                    // Wrap the value in a span with the blinking-text class
+                    // Create the span for the value
                     const valueSpan = document.createElement('span');
-                    valueSpan.classList.add('blinking-text');
-                    valueSpan.textContent = parseFloat(value).toFixed(2);
+
+                    // Check if the value is null or not
+                    if (value === null || isNaN(value)){
+                        valueSpan.classList.add('blinking-text');
+                        valueSpan.textContent = 'N/A'; // Or any placeholder you want for null values
+                    } else {
+                        valueSpan.textContent = parseFloat(value).toFixed(2);
+                    }
+
                     lastValueCell.appendChild(valueSpan);
 
                     const earliestTimeCell = document.createElement('td');
