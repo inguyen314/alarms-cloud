@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 // console.log({ locData })
                                                 // Determine extent key based on tsid
                                                 let extent_key;
-                                                if (tsid.includes('Stage') || tsid.includes('Elev')) { // Example for another condition
+                                                if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) { // Example for another condition
                                                     extent_key = 'datman';
                                                 } else {
                                                     return; // Ignore if it doesn't match either condition
@@ -409,39 +409,48 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data filtered successfully:', combinedData);
 
-                    // Check if there are valid lastDatmanValues in the data
-                    if (hasLastValue(combinedData)) {
-                        if (hasDataSpike(combinedData)) {
-                            console.log("Data spike detected.");
-                            // call createTable if data spike exists
-                            const table = createTableDataSpike(combinedData);
-
-                            // Append the table to the specified container
-                            const container = document.getElementById('table_container_alarm_datman');
-                            container.appendChild(table);
-                        } else {
-                            console.log("No data spikes detected.");
-                            console.log('Valid lastDatmanValue found. Displaying image instead.');
-
-                            // Create an img element
-                            const img = document.createElement('img');
-                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                            img.alt = 'Process Completed'; // Optional alt text for accessibility
-                            img.style.width = '50px'; // Optional: set the image width
-                            img.style.height = '50px'; // Optional: set the image height
-
-                            // Get the container and append the image
-                            const container = document.getElementById('table_container_alarm_datman');
-                            container.appendChild(img);
-                        }
-
-                    } else {
+                    if (type === "status") {
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData);
 
                         // Append the table to the specified container
                         const container = document.getElementById('table_container_alarm_datman');
                         container.appendChild(table);
+                    } else {
+                        // Check if there are valid lastDatmanValues in the data
+                        if (hasLastValue(combinedData)) {
+                            if (hasDataSpike(combinedData)) {
+                                console.log("Data spike detected.");
+                                // call createTable if data spike exists
+                                const table = createTableDataSpike(combinedData);
+
+                                // Append the table to the specified container
+                                const container = document.getElementById('table_container_alarm_datman');
+                                container.appendChild(table);
+                            } else {
+                                console.log("No data spikes detected.");
+                                console.log('Valid lastDatmanValue found. Displaying image instead.');
+
+                                // Create an img element
+                                const img = document.createElement('img');
+                                img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                                img.alt = 'Process Completed'; // Optional alt text for accessibility
+                                img.style.width = '50px'; // Optional: set the image width
+                                img.style.height = '50px'; // Optional: set the image height
+
+                                // Get the container and append the image
+                                const container = document.getElementById('table_container_alarm_datman');
+                                container.appendChild(img);
+                            }
+
+                        } else {
+                            // Only call createTable if no valid data exists
+                            const table = createTable(combinedData);
+
+                            // Append the table to the specified container
+                            const container = document.getElementById('table_container_alarm_datman');
+                            container.appendChild(table);
+                        }
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -621,26 +630,48 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const location = assignedLocations[locationName];
                     // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
+                    // Check if location['tsid-temp-water'] exists, if not, set tempWaterTsidArray to an empty array
+                    const datmanTsidArray = (location['tsid-datman'] && location['tsid-datman']['assigned-time-series']) || [];
                     const datmanLastValueArray = location['datman-last-value'];
+                    console.log("datmanTsidArray: ", datmanTsidArray);
+                    console.log("datmanLastValueArray: ", datmanLastValueArray);
 
                     // Check if 'datman-last-value' exists and is an array
                     let hasValidValue = false;
 
-                    if (Array.isArray(datmanLastValueArray)) {
-                        // console.log('datman-last-value array found:', datmanLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A' and within the range -999 to 999)
-                        const validDatmanEntries = datmanLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
-                        );
+                    if (Array.isArray(datmanTsidArray) && datmanTsidArray.length > 0) {
+                        console.log('datmanTsidArray has data.');
 
-                        if (validDatmanEntries.length > 0) {
-                            // console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
-                            hasValidValue = true;
+                        // Loop through the datmanLastValueArray and check for null or invalid entries
+                        for (let i = 0; i < datmanLastValueArray.length; i++) {
+                            const entry = datmanLastValueArray[i];
+                            console.log("Checking entry: ", entry);
+
+                            // Step 1: If the entry is null, set hasValidValue to false
+                            if (entry === null) {
+                                console.log(`Entry at index ${i} is null and not valid.`);
+                                hasValidValue = false;
+                                continue; // Skip to the next iteration, this is not valid
+                            }
+
+                            // Step 2: If the entry exists, check if the value is valid
+                            if (entry.value !== null && entry.value !== 'N/A' && entry.value !== undefined) {
+                                console.log(`Valid entry found at index ${i}:`, entry);
+                                hasValidValue = true; // Set to true only if we have a valid entry
+                            } else {
+                                console.log(`Entry at index ${i} has an invalid value:`, entry.value);
+                                hasValidValue = false; // Invalid value, so set it to false
+                            }
+                        }
+
+                        // Log whether a valid entry was found
+                        if (hasValidValue) {
+                            console.log("There are valid entries in the array.");
                         } else {
-                            // console.log(`No valid datman entries found in location ${locationName}.`);
+                            console.log("No valid entries found in the array.");
                         }
                     } else {
-                        console.log(`No datman-last-value array found in location ${locationName}.`);
+                        console.log(`datmanTsidArray is either empty or not an array for location ${locationName}.`);
                     }
 
                     // If no valid values found in the current location, mark as invalid
@@ -769,7 +800,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Create header row for the item's ID
             const headerRow = document.createElement('tr');
             const idHeader = document.createElement('th');
-            idHeader.colSpan = 3;
+            idHeader.colSpan = 4;
             // Apply styles
             idHeader.style.backgroundColor = 'darkblue';
             idHeader.style.color = 'white';
@@ -779,7 +810,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Create subheader row for "Time Series", "Value", "Date Time"
             const subHeaderRow = document.createElement('tr');
-            ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
+            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
                 const td = document.createElement('td');
                 td.textContent = headerText;
                 subHeaderRow.appendChild(td);
@@ -791,7 +822,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const datmanData = location['extents-data']?.['datman'] || [];
 
                 // Function to create data row
-                const createDataRow = (tsid, value, timestamp) => {
+                const createDataRow = (tsid, value, timestamp, earliestTime) => {
                     const dataRow = document.createElement('tr');
 
                     const nameCell = document.createElement('td');
@@ -802,14 +833,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Wrap the value in a span with the blinking-text class
                     const valueSpan = document.createElement('span');
                     valueSpan.classList.add('blinking-text');
-                    valueSpan.textContent = value;
+                    valueSpan.textContent = parseFloat(value).toFixed(2);
                     lastValueCell.appendChild(valueSpan);
+
+                    const earliestTimeCell = document.createElement('td');
+                    earliestTimeCell.textContent = earliestTime;
 
                     const latestTimeCell = document.createElement('td');
                     latestTimeCell.textContent = timestamp;
 
                     dataRow.appendChild(nameCell);
                     dataRow.appendChild(lastValueCell);
+                    dataRow.appendChild(earliestTimeCell);
                     dataRow.appendChild(latestTimeCell);
 
                     table.appendChild(dataRow);
@@ -818,6 +853,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Process Datman data
                 datmanData.forEach(datmanEntry => {
                     const tsid = datmanEntry.name; // Time-series ID from extents-data
+                    const earliestTime = datmanEntry.earliestTime;
+                    const latestTime = datmanEntry.latestTime;
 
                     // Safely access 'do-last-value'
                     const lastDatmanValue = (Array.isArray(location['datman-last-value'])
@@ -825,19 +862,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                         : null) || { value: 'N/A', timestamp: 'N/A' };
 
                     let dateTimeDatman = null;
-                    if (lastDatmanValue && lastDatmanValue.value !== 'N/A' && lastDatmanValue.value > - 900 && lastDatmanValue.value < 900) {
-                        // Format lastDatmanValue to two decimal places
-                        lastDatmanValue.value = parseFloat(lastDatmanValue.value).toFixed(2);
-                        dateTimeDatman = lastDatmanValue.timestamp;
-                        if (hasDataSpike(data)) {
-                            createDataRow(tsid, lastDatmanValue.value, dateTimeDatman);
-                        }
-                    } else {
-                        dateTimeDatman = datmanEntry.latestTime;
-                        createDataRow(tsid, lastDatmanValue.value, dateTimeDatman);
-                    }
+                    dateTimeDatman = datmanEntry.latestTime;
+                    createDataRow(tsid, lastDatmanValue.value, dateTimeDatman, earliestTime);
                 });
-
 
                 // If no data available for temp-water, depth, and do
                 if (datmanData.length === 0) {
@@ -850,7 +877,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     dataRow.appendChild(nameCell);
                     table.appendChild(dataRow);
                 }
-
             });
         });
 

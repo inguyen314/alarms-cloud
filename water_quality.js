@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             container.appendChild(table);
                         } else {
                             console.log("No data spikes detected.");
-                            console.log('Valid lastDatmanValue found. Displaying image instead.');
+                            console.log('Valid lastValue found. Displaying image instead.');
 
                             // Create an img element
                             const img = document.createElement('img');
@@ -715,6 +715,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
                 const assignedLocations = item['assigned-locations'];
+                // console.log("assignedLocations: ", assignedLocations);
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
                     console.log('No assigned-locations found in basin:', item);
@@ -725,48 +726,113 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
+                    // console.log("location: ", location);
                     console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
+                    // Check if location['tsid-temp-water'] exists, if not, set tempWaterTsidArray to an empty array
+                    const tempWaterTsidArray = (location['tsid-temp-water'] && location['tsid-temp-water']['assigned-time-series']) || [];
                     const tempWaterLastValueArray = location['temp-water-last-value'];
-                    const depthLastValueArray = location['depth-last-value'];
+                    console.log("tempWaterTsidArray: ", tempWaterTsidArray);
+                    console.log("tempWaterLastValueArray: ", tempWaterLastValueArray);
+
+                    // Check if location['tsid-depth'] exists, if not, set depthTsidArray to an empty array
+                    const depthTsidArray = (location['tsid-depth'] && location['tsid-depth']['assigned-time-series']) || [];
+                    const depthLastValueArray = location['depth-last-value'] || [];
+                    // console.log("depthTsidArray: ", depthTsidArray);
+                    // console.log("depthLastValueArray: ", depthLastValueArray);
+
+                    // Check if location['tsid-do'] exists, if not, set doTsidArray to an empty array
+                    const doTsidArray = (location['tsid-do'] && location['tsid-do']['assigned-time-series']) || [];
                     const doLastValueArray = location['do-last-value'];
+                    // console.log("doTsidArray: ", doTsidArray);
+                    // console.log("doLastValueArray: ", doLastValueArray);
 
                     // Check for valid temp-water-last-value entries
                     let hasValidValue = false;
 
-                    if (Array.isArray(tempWaterLastValueArray)) {
-                        const validTempWaterEntries = tempWaterLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A'
-                        );
+                    if (Array.isArray(tempWaterTsidArray) && tempWaterTsidArray.length > 0) {
+                        console.log('tempWaterTsidArray has data.');
 
-                        if (validTempWaterEntries.length > 0) {
-                            console.log(`Valid 'temp-water' entries found in location ${locationName}:`, validTempWaterEntries);
-                            hasValidValue = true;
+                        // Loop through the tempWaterLastValueArray and check for null or invalid entries
+                        for (let i = 0; i < tempWaterLastValueArray.length; i++) {
+                            const entry = tempWaterLastValueArray[i];
+                            console.log("Checking entry: ", entry);
+
+                            // Step 1: If the entry is null, set hasValidValue to false
+                            if (entry === null) {
+                                console.log(`Entry at index ${i} is null and not valid.`);
+                                hasValidValue = false;
+                                continue; // Skip to the next iteration, this is not valid
+                            }
+
+                            // Step 2: If the entry exists, check if the value is valid
+                            if (entry.value !== null && entry.value !== 'N/A' && entry.value !== undefined) {
+                                console.log(`Valid entry found at index ${i}:`, entry);
+                                hasValidValue = true; // Set to true only if we have a valid entry
+                            } else {
+                                console.log(`Entry at index ${i} has an invalid value:`, entry.value);
+                                hasValidValue = false; // Invalid value, so set it to false
+                            }
                         }
+                    } else {
+                        console.log(`tempWaterTsidArray is either empty or not an array for location ${locationName}.`);
                     }
 
-                    // Check for valid depth-last-value entries
-                    if (Array.isArray(depthLastValueArray)) {
-                        const validDepthEntries = depthLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A'
-                        );
+                    if (Array.isArray(depthTsidArray) && depthTsidArray.length > 0) {
+                        console.log('depthTsidArray has data.');
 
-                        if (validDepthEntries.length > 0) {
-                            console.log(`Valid 'depth' entries found in location ${locationName}:`, validDepthEntries);
-                            hasValidValue = true;
+                        // Loop through the depthLastValueArray and check for null or invalid entries
+                        for (let i = 0; i < depthLastValueArray.length; i++) {
+                            const entry = depthLastValueArray[i];
+                            console.log("Checking entry: ", entry);
+
+                            // Step 1: If the entry is null, set hasValidValue to false
+                            if (entry === null) {
+                                console.log(`Entry at index ${i} is null and not valid.`);
+                                hasValidValue = false;
+                                continue; // Skip to the next iteration, this is not valid
+                            }
+
+                            // Step 2: If the entry exists, check if the value is valid
+                            if (entry.value !== null && entry.value !== 'N/A' && entry.value !== undefined) {
+                                console.log(`Valid entry found at index ${i}:`, entry);
+                                hasValidValue = true; // Set to true only if we have a valid entry
+                            } else {
+                                console.log(`Entry at index ${i} has an invalid value:`, entry.value);
+                                hasValidValue = false; // Invalid value, so set it to false
+                            }
                         }
+                    } else {
+                        console.log(`depthTsidArray is either empty or not an array for location ${locationName}.`);
                     }
 
-                    // Check for valid do-last-value entries
-                    if (Array.isArray(doLastValueArray)) {
-                        const validDoEntries = doLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A'
-                        );
 
-                        if (validDoEntries.length > 0) {
-                            console.log(`Valid 'do' entries found in location ${locationName}:`, validDoEntries);
-                            hasValidValue = true;
+                    if (Array.isArray(doTsidArray) && doTsidArray.length > 0) {
+                        console.log('doTsidArray has data.');
+
+                        // Loop through the doLastValueArray and check for null or invalid entries
+                        for (let i = 0; i < doLastValueArray.length; i++) {
+                            const entry = doLastValueArray[i];
+                            console.log("Checking entry: ", entry);
+
+                            // Step 1: If the entry is null, set hasValidValue to false
+                            if (entry === null) {
+                                console.log(`Entry at index ${i} is null and not valid.`);
+                                hasValidValue = false;
+                                continue; // Skip to the next iteration, this is not valid
+                            }
+
+                            // Step 2: If the entry exists, check if the value is valid
+                            if (entry.value !== null && entry.value !== 'N/A' && entry.value !== undefined) {
+                                console.log(`Valid entry found at index ${i}:`, entry);
+                                hasValidValue = true; // Set to true only if we have a valid entry
+                            } else {
+                                console.log(`Entry at index ${i} has an invalid value:`, entry.value);
+                                hasValidValue = false; // Invalid value, so set it to false
+                            }
                         }
+                    } else {
+                        console.log(`doTsidArray is either empty or not an array for location ${locationName}.`);
                     }
 
                     // If none of the arrays have a valid entry, mark the location as invalid
@@ -870,7 +936,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Create header row for the item's ID
             const headerRow = document.createElement('tr');
             const idHeader = document.createElement('th');
-            idHeader.colSpan = 3;
+            idHeader.colSpan = 4;
             // Apply styles
             idHeader.style.backgroundColor = 'darkblue';
             idHeader.style.color = 'white';
@@ -880,7 +946,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Create subheader row for "Time Series", "Value", "Latest Time"
             const subHeaderRow = document.createElement('tr');
-            ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
+            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
                 const td = document.createElement('td');
                 td.textContent = headerText;
                 subHeaderRow.appendChild(td);
@@ -894,7 +960,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const doData = location['extents-data']?.['do'] || [];
 
                 // Function to create data row
-                const createDataRow = (tsid, value, timestamp) => {
+                const createDataRow = (tsid, value, timestamp, earliestTime) => {
                     const dataRow = document.createElement('tr');
 
                     const nameCell = document.createElement('td');
@@ -905,14 +971,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Wrap the value in a span with the blinking-text class
                     const valueSpan = document.createElement('span');
                     valueSpan.classList.add('blinking-text');
-                    valueSpan.textContent = value;
+                    valueSpan.textContent = parseFloat(value).toFixed(2);
                     lastValueCell.appendChild(valueSpan);
+
+                    const earliestTimeCell = document.createElement('td');
+                    earliestTimeCell.textContent = earliestTime;
 
                     const latestTimeCell = document.createElement('td');
                     latestTimeCell.textContent = timestamp;
 
                     dataRow.appendChild(nameCell);
                     dataRow.appendChild(lastValueCell);
+                    dataRow.appendChild(earliestTimeCell);
                     dataRow.appendChild(latestTimeCell);
 
                     table.appendChild(dataRow);
@@ -921,6 +991,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Process temperature water data
                 tempWaterData.forEach(tempEntry => {
                     const tsid = tempEntry.name; // Time-series ID from extents-data
+                    const earliestTime = tempEntry.earliestTime;
+                    const latestTime = tempEntry.latestTime;
 
                     // Safely access 'temp-water-last-value'
                     const lastTempValue = (Array.isArray(location['temp-water-last-value'])
@@ -934,13 +1006,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                         dateTime = lastTempValue.timestamp;
                     } else {
                         dateTime = tempEntry.latestTime;
-                        createDataRow(tsid, lastTempValue.value, dateTime);
+                        createDataRow(tsid, lastTempValue.value, dateTime, earliestTime);
                     }
                 });
 
                 // Process depth data
                 depthData.forEach(depthEntry => {
                     const tsid = depthEntry.name; // Time-series ID from extents-data
+                    const earliestTime = depthEntry.earliestTime;
+                    const latestTime = depthEntry.latestTime;
 
                     // Safely access 'depth-last-value'
                     const lastDepthValue = (Array.isArray(location['depth-last-value'])
@@ -954,13 +1028,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                         dateTimeDepth = lastDepthValue.timestamp;
                     } else {
                         dateTimeDepth = depthEntry.latestTime;
-                        createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                        createDataRow(tsid, lastDepthValue.value, dateTimeDepth, earliestTime);
                     }
                 });
 
                 // Process DO (dissolved oxygen) data
                 doData.forEach(doEntry => {
                     const tsid = doEntry.name; // Time-series ID from extents-data
+                    const earliestTime = doEntry.earliestTime;
+                    const latestTime = doEntry.latestTime;
 
                     // Safely access 'do-last-value'
                     const lastDoValue = (Array.isArray(location['do-last-value'])
@@ -974,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         dateTimeDo = lastDoValue.timestamp;
                     } else {
                         dateTimeDo = doEntry.latestTime;
-                        createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                        createDataRow(tsid, lastDoValue.value, dateTimeDo, earliestTime);
                     }
                 });
 
