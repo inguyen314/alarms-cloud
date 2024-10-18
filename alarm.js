@@ -1,10 +1,16 @@
 document.addEventListener('DOMContentLoaded', async function () {
     // Display the loading indicator for water quality alarm
-    const loadingIndicator = document.getElementById('loading_alarm_datman');
+    const loadingIndicator = document.getElementById('loading_alarm');
     loadingIndicator.style.display = 'block'; // Show the loading indicator
 
-    // Set the category and base URL for API calls
+    const currentDateTime = new Date();
+
+    // Set the category, lookback and base URL for API calls
+    // let setCategory = "Alarm-Water-Quality";
+    // const lookBackHours = subtractHoursFromDate(new Date(), 25);
+
     let setCategory = "Datman";
+    const lookBackHours = subtractDaysFromDate(new Date(), 90);
 
     let setBaseUrl = null;
     if (cda === "internal") {
@@ -22,16 +28,18 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const metadataMap = new Map();
     const ownerMap = new Map();
+    const tsidTempWaterMap = new Map();
+    const tsidDepthMap = new Map();
+    const tsidDoMap = new Map();
     const tsidDatmanMap = new Map();
 
     // Initialize arrays for storing promises
     const metadataPromises = [];
     const ownerPromises = [];
+    const tempWaterTsidPromises = [];
+    const depthTsidPromises = [];
+    const doTsidPromises = [];
     const datmanTsidPromises = [];
-
-    // Get the current date and time, and compute a "look-back" time for historical data
-    const currentDateTime = new Date();
-    const lookBackHours = subtractDaysFromDate(new Date(), 90); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -142,6 +150,68 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         );
                                     }
 
+                                    // Fetch temperature water TSID data
+                                    const tsidTempWaterApiUrl = setBaseUrl + `timeseries/group/Temp-Water?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log("tsidTempWaterApiUrl: ", tsidTempWaterApiUrl);
+                                    tempWaterTsidPromises.push(
+                                        fetch(tsidTempWaterApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidTempWaterData => {
+                                                // console.log('tsidTempWaterData:', tsidTempWaterData);
+                                                if (tsidTempWaterData) {
+                                                    tsidTempWaterMap.set(loc['location-id'], tsidTempWaterData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidTempWaterApiUrl}:`, error);
+                                            })
+                                    );
+
+                                    // Fetch depth TSID data
+                                    const tsidDepthApiUrl = setBaseUrl + `timeseries/group/Depth?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log("tsidDepthApiUrl: ", tsidDepthApiUrl);
+                                    depthTsidPromises.push(
+                                        fetch(tsidDepthApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidDepthData => {
+                                                // console.log('tsidDepthData:', tsidDepthData);
+                                                if (tsidDepthData) {
+                                                    tsidDepthMap.set(loc['location-id'], tsidDepthData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDepthApiUrl}:`, error);
+                                            })
+                                    );
+
+                                    // Fetch dissolved oxygen TSID data
+                                    const tsidDoApiUrl = setBaseUrl + `timeseries/group/Conc-DO?office=${office}&category-id=${loc['location-id']}`;
+                                    console.log('tsidDoApiUrl:', tsidDoApiUrl);
+                                    doTsidPromises.push(
+                                        fetch(tsidDoApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null; // Skip if not found
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidDoData => {
+                                                // console.log('tsidDoData:', tsidDoData);
+                                                if (tsidDoData) {
+                                                    tsidDoMap.set(loc['location-id'], tsidDoData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDoApiUrl}:`, error);
+                                            })
+                                    );
 
                                     // Fetch datman TSID data
                                     const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/Datman?office=${office}&category-id=${loc['location-id']}`;
@@ -176,6 +246,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             Promise.all(apiPromises)
                 .then(() => Promise.all(metadataPromises))
                 .then(() => Promise.all(ownerPromises))
+                .then(() => Promise.all(tempWaterTsidPromises))
+                .then(() => Promise.all(depthTsidPromises))
+                .then(() => Promise.all(doTsidPromises))
                 .then(() => Promise.all(datmanTsidPromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
@@ -195,6 +268,32 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     loc['owner'] = ownerMapData;
                                 }
 
+                                // Add temp-water to json
+                                const tsidTempWaterMapData = tsidTempWaterMap.get(loc['location-id']);
+                                if (tsidTempWaterMapData) {
+                                    reorderByAttribute(tsidTempWaterMapData);
+                                    loc['tsid-temp-water'] = tsidTempWaterMapData;
+                                } else {
+                                    loc['tsid-temp-water'] = null;  // Append null if missing
+                                }
+
+                                // Add depth to json
+                                const tsidDepthMapData = tsidDepthMap.get(loc['location-id']);
+                                if (tsidDepthMapData) {
+                                    reorderByAttribute(tsidDepthMapData);
+                                    loc['tsid-depth'] = tsidDepthMapData;
+                                } else {
+                                    loc['tsid-depth'] = null;  // Append null if missing
+                                }
+
+                                // Add do to json
+                                const tsidDoMapData = tsidDoMap.get(loc['location-id']);
+                                if (tsidDoMapData) {
+                                    reorderByAttribute(tsidDoMapData);
+                                    loc['tsid-do'] = tsidDoMapData;
+                                } else {
+                                    loc['tsid-do'] = null;  // Append null if missing
+                                }
 
                                 // Add datman to json
                                 const tsidDatmanMapData = tsidDatmanMap.get(loc['location-id']);
@@ -206,8 +305,25 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 }
 
                                 // Initialize empty arrays to hold API and last-value data for various parameters
+                                loc['temp-water-api-data'] = [];
+                                loc['temp-water-last-value'] = [];
+                                loc['temp-water-min-value'] = [];
+                                loc['temp-water-max-value'] = [];
+
+                                loc['depth-api-data'] = [];
+                                loc['depth-last-value'] = [];
+                                loc['depth-min-value'] = [];
+                                loc['depth-max-value'] = [];
+
+                                loc['do-api-data'] = [];
+                                loc['do-last-value'] = [];
+                                loc['do-min-value'] = [];
+                                loc['do-max-value'] = [];
+
                                 loc['datman-api-data'] = [];
                                 loc['datman-last-value'] = [];
+                                loc['datman-min-value'] = [];
+                                loc['datman-max-value'] = [];
                             });
                         }
                     });
@@ -220,6 +336,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                     for (const dataArray of combinedData) {
                         for (const locData of dataArray['assigned-locations'] || []) {
                             // Handle temperature, depth, and DO time series
+                            const tempTimeSeries = locData['tsid-temp-water']?.['assigned-time-series'] || [];
+                            const depthTimeSeries = locData['tsid-depth']?.['assigned-time-series'] || [];
+                            const doTimeSeries = locData['tsid-do']?.['assigned-time-series'] || [];
                             const datmanTimeSeries = locData['tsid-datman']?.['assigned-time-series'] || [];
 
                             // Function to create fetch promises for time series data
@@ -243,84 +362,111 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 });
                                             }
 
+                                            // api Key
                                             let apiDataKey;
-                                            if (type === 'datman') {
-                                                apiDataKey = 'datman-api-data'; // Assuming 'do-api-data' is the key for dissolved oxygen data
+                                            if (type === 'temp-water') {
+                                                apiDataKey = 'temp-water-api-data';
+                                            } else if (type === 'depth') {
+                                                apiDataKey = 'depth-api-data';
+                                            } else if (type === 'do') {
+                                                apiDataKey = 'do-api-data';
+                                            } else if (type === 'datman') {
+                                                apiDataKey = 'datman-api-data';
                                             } else {
                                                 console.error('Unknown type:', type);
-                                                return; // Early return to avoid pushing data if type is unknown
+                                                return;
                                             }
-
                                             locData[apiDataKey].push(data);
 
-
-                                            let lastValueKey;
-                                            if (type === 'datman') {
-                                                lastValueKey = 'datman-last-value';  // Assuming 'do-last-value' is the key for dissolved oxygen last value
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
-                                            let maxValueKey;
-                                            if (type === 'datman') {
-                                                maxValueKey = 'datman-max-value';
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
+                                            // minValue Key
                                             let minValueKey;
-                                            if (type === 'datman') {
+                                            if (type === 'temp-water') {
+                                                minValueKey = 'temp-water-min-value';
+                                            } else if (type === 'depth') {
+                                                minValueKey = 'depth-min-value';
+                                            } else if (type === 'do') {
+                                                minValueKey = 'do-min-value';
+                                            }  else if (type === 'datman') {
                                                 minValueKey = 'datman-min-value';
                                             } else {
                                                 console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
+                                                return;
                                             }
-
-                                            if (!locData[lastValueKey]) {
-                                                locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
-                                            if (!locData[maxValueKey]) {
-                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
                                             if (!locData[minValueKey]) {
                                                 locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
 
+                                            // lastValue Key
+                                            let lastValueKey;
+                                            if (type === 'temp-water') {
+                                                lastValueKey = 'temp-water-last-value';
+                                            } else if (type === 'depth') {
+                                                lastValueKey = 'depth-last-value';
+                                            } else if (type === 'do') {
+                                                lastValueKey = 'do-last-value';
+                                            }  else if (type === 'datman') {
+                                                lastValueKey = 'datman-last-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return;
+                                            }
+                                            if (!locData[lastValueKey]) {
+                                                locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            // maxValue Key
+                                            let maxValueKey;
+                                            if (type === 'temp-water') {
+                                                maxValueKey = 'temp-water-max-value';
+                                            } else if (type === 'depth') {
+                                                maxValueKey = 'depth-max-value';
+                                            } else if (type === 'do') {
+                                                maxValueKey = 'do-max-value';
+                                            }  else if (type === 'datman') {
+                                                maxValueKey = 'datman-max-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return;
+                                            }
+                                            if (!locData[maxValueKey]) {
+                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
+                                            // console.log("lastValue: ", lastValue);
 
-                                            // Get and store the last max value for the specific tsid
-                                            const maxValue = getMaxValue(data, tsid);
-                                            // console.log("maxValue: ", maxValue);
-
-                                            // Get and store the last min value for the specific tsid
+                                            // Get and store the min non-null value for the specific tsid
                                             const minValue = getMinValue(data, tsid);
                                             // console.log("minValue: ", minValue);
+
+                                            // Get and store the max non-null value for the specific tsid
+                                            const maxValue = getMaxValue(data, tsid);
+                                            // console.log("maxValue: ", maxValue);
 
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
 
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[maxValueKey].push(maxValue);
+                                            // Push an empty array [] if minValue is null, otherwise push the actual minValue
+                                            if (minValue) {
+                                                locData[minValueKey].push(minValue);
+                                            }
 
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[minValueKey].push(minValue);
-
+                                            // Push an empty array [] if minValue is null, otherwise push the actual minValue
+                                            if (maxValue) {
+                                                locData[maxValueKey].push(maxValue);
+                                            }
                                         })
-
                                         .catch(error => {
                                             console.error(`Error fetching additional data for location ${locData['location-id']} with TSID ${tsid}:`, error);
                                         });
                                 });
                             };
 
-
                             // Create promises for temperature, depth, and DO time series
+                            const tempPromises = timeSeriesDataFetchPromises(tempTimeSeries, 'temp-water');
+                            const depthPromises = timeSeriesDataFetchPromises(depthTimeSeries, 'depth');
+                            const doPromises = timeSeriesDataFetchPromises(doTimeSeries, 'do');
                             const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, 'datman');
 
                             // Additional API call for extents data
@@ -340,8 +486,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         locData[`extents-data`] = {}
 
                                         // Collect TSIDs from temp, depth, and DO time series
+                                        const tempTids = tempTimeSeries.map(series => series['timeseries-id']);
+                                        const depthTids = depthTimeSeries.map(series => series['timeseries-id']);
+                                        const doTids = doTimeSeries.map(series => series['timeseries-id']);
                                         const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
-                                        const allTids = [...datmanTids]; // Combine both arrays
+                                        const allTids = [...tempTids, ...depthTids, ...doTids, ...datmanTids]; // Combine both arrays
 
                                         // Iterate over all TSIDs and create extents data entries
                                         allTids.forEach((tsid, index) => {
@@ -360,7 +509,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 // console.log({ locData })
                                                 // Determine extent key based on tsid
                                                 let extent_key;
-                                                if (tsid.includes('Stage') || tsid.includes('Elev')) { // Example for another condition
+                                                if (tsid.includes('Depth')) {
+                                                    extent_key = 'depth';
+                                                } else if (tsid.includes('Temp-Water')) {
+                                                    extent_key = 'temp-water';
+                                                } else if (tsid.includes('Conc-DO')) {
+                                                    extent_key = 'do';
+                                                } else if (tsid.includes('Stage') || tsid.includes('Elev')) {
                                                     extent_key = 'datman';
                                                 } else {
                                                     return; // Ignore if it doesn't match either condition
@@ -382,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             };
 
                             // Combine all promises for this location
-                            timeSeriesDataPromises.push(Promise.all([...datmanPromises, timeSeriesDataExtentsApiCall()]));
+                            timeSeriesDataPromises.push(Promise.all([...tempPromises, ...depthPromises, ...doPromises, ...datmanPromises, timeSeriesDataExtentsApiCall()]));
                         }
                     }
 
@@ -409,15 +564,23 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data filtered successfully:', combinedData);
 
+                    // Check and remove all data not needed for the alarm
+                    if (setCategory === "Datman") {
+                        // Remove these keys from assigned-locations
+                        console.log("remove these: ", combinedData[0][`assigned-locations`][0][`do-api-data`]);
+                    }
+
+
                     // Check if there are valid lastDatmanValues in the data
                     if (hasLastValue(combinedData)) {
+                        console.log("Last value detected for all entries. calling hasDataSpike");
                         if (hasDataSpike(combinedData)) {
-                            console.log("Data spike detected.");
+                            console.log("Data spike detected. calling createTableDataSpike");
                             // call createTable if data spike exists
                             const table = createTableDataSpike(combinedData);
 
                             // Append the table to the specified container
-                            const container = document.getElementById('table_container_alarm_datman');
+                            const container = document.getElementById('table_container_alarm');
                             container.appendChild(table);
                         } else {
                             console.log("No data spikes detected.");
@@ -431,16 +594,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             img.style.height = '50px'; // Optional: set the image height
 
                             // Get the container and append the image
-                            const container = document.getElementById('table_container_alarm_datman');
+                            const container = document.getElementById('table_container_alarm');
                             container.appendChild(img);
                         }
-
                     } else {
+                        console.log("Some last value not detected, calling createTable");
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData);
 
                         // Append the table to the specified container
-                        const container = document.getElementById('table_container_alarm_datman');
+                        const container = document.getElementById('table_container_alarm');
                         container.appendChild(table);
                     }
 
@@ -550,16 +713,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function getMaxValue(data, tsid) {
-        let maxValue = -Infinity; // Start with the smallest possible value
-        let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
+        let maxEntry = null;
 
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null and within a reasonable range
+            // if (data.values[i][1] !== null && data.values[i][1] > 99999) { // Adjust threshold as necessary
             // Check if the value at index i is not null
             if (data.values[i][1] !== null) {
-                // Update maxValue and maxEntry if the current value is greater
-                if (data.values[i][1] > maxValue) {
-                    maxValue = data.values[i][1];
+                // If maxEntry is null or the current value is greater than the maxEntry's value
+                if (maxEntry === null || data.values[i][1] > maxEntry.value) {
                     maxEntry = {
                         tsid: tsid,
                         timestamp: data.values[i][0],
@@ -568,6 +731,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     };
                 }
             }
+            // }
         }
 
         // Return the max entry (or null if no valid values were found)
@@ -575,16 +739,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function getMinValue(data, tsid) {
-        let minValue = Infinity; // Start with the largest possible value
-        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
+        let minEntry = null;
 
         // Loop through the values array
         for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null and within a reasonable range
+            // if (data.values[i][1] !== null && data.values[i][1] < 99999) { // Adjust threshold as necessary
             // Check if the value at index i is not null
             if (data.values[i][1] !== null) {
-                // Update minValue and minEntry if the current value is smaller
-                if (data.values[i][1] < minValue) {
-                    minValue = data.values[i][1];
+                // If minEntry is null or the current value is smaller than the minEntry's value
+                if (minEntry === null || data.values[i][1] < minEntry.value) {
                     minEntry = {
                         tsid: tsid,
                         timestamp: data.values[i][0],
@@ -593,10 +757,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     };
                 }
             }
-        }
+            // }
 
-        // Return the min entry (or null if no valid values were found)
-        return minEntry;
+            // Return the min entry (or null if no valid values were found)
+            return minEntry;
+        }
     }
 
     function hasLastValue(data) {
@@ -606,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
+                console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
 
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
@@ -619,32 +784,53 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
+                    console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
 
-                    const datmanLastValueArray = location['datman-last-value'];
+                    const tempWaterLastValueArray = location['temp-water-last-value'];
+                    const depthLastValueArray = location['depth-last-value'];
+                    const doLastValueArray = location['do-last-value'];
 
-                    // Check if 'datman-last-value' exists and is an array
+                    // Check for valid temp-water-last-value entries
                     let hasValidValue = false;
 
-                    if (Array.isArray(datmanLastValueArray)) {
-                        // console.log('datman-last-value array found:', datmanLastValueArray);
-                        // Check all entries in the array for valid values (not 'N/A' and within the range -999 to 999)
-                        const validDatmanEntries = datmanLastValueArray.filter(entry =>
-                            entry && entry.value !== 'N/A' && entry.value >= -999 && entry.value <= 999
+                    if (Array.isArray(tempWaterLastValueArray)) {
+                        const validTempWaterEntries = tempWaterLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A'
                         );
 
-                        if (validDatmanEntries.length > 0) {
-                            // console.log(`Valid datman entries found in location ${locationName}:`, validDatmanEntries);
+                        if (validTempWaterEntries.length > 0) {
+                            console.log(`Valid 'temp-water' entries found in location ${locationName}:`, validTempWaterEntries);
                             hasValidValue = true;
-                        } else {
-                            // console.log(`No valid datman entries found in location ${locationName}.`);
                         }
-                    } else {
-                        console.log(`No datman-last-value array found in location ${locationName}.`);
                     }
 
-                    // If no valid values found in the current location, mark as invalid
+                    // Check for valid depth-last-value entries
+                    if (Array.isArray(depthLastValueArray)) {
+                        const validDepthEntries = depthLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A'
+                        );
+
+                        if (validDepthEntries.length > 0) {
+                            console.log(`Valid 'depth' entries found in location ${locationName}:`, validDepthEntries);
+                            hasValidValue = true;
+                        }
+                    }
+
+                    // Check for valid do-last-value entries
+                    if (Array.isArray(doLastValueArray)) {
+                        const validDoEntries = doLastValueArray.filter(entry =>
+                            entry && entry.value !== 'N/A'
+                        );
+
+                        if (validDoEntries.length > 0) {
+                            console.log(`Valid 'do' entries found in location ${locationName}:`, validDoEntries);
+                            hasValidValue = true;
+                        }
+                    }
+
+                    // If none of the arrays have a valid entry, mark the location as invalid
                     if (!hasValidValue) {
+                        console.log(`No valid entries found in location ${locationName}.`);
                         allLocationsValid = false; // Set flag to false if any location is invalid
                     }
                 }
@@ -661,62 +847,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    function hasDataSpikeInApiDataArray(data) {
-        // Iterate through each key in the data object
-        for (const locationIndex in data) {
-            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
-                const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
-                const assignedLocations = item['assigned-locations'];
-                // Check if assigned-locations is an object
-                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    console.log('No assigned-locations found in basin:', item);
-                    continue; // Skip to the next basin
-                }
-
-                // Iterate through each location in assigned-locations
-                for (const locationName in assignedLocations) {
-                    const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
-                    const datmanApiData = location['datman-api-data'];
-
-                    // Check if 'datman-api-data' exists and has a 'values' array
-                    if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
-                        let maxValue = -Infinity; // Initialize to a very low value
-                        let minValue = Infinity; // Initialize to a very high value
-
-                        // Iterate through the 'values' array and find the max and min values
-                        datmanApiData[0]['values'].forEach(valueEntry => {
-                            const currentValue = parseFloat(valueEntry[1]);
-                            if (!isNaN(currentValue)) {
-                                maxValue = Math.max(maxValue, currentValue);
-                                minValue = Math.min(minValue, currentValue);
-                            }
-                        });
-
-                        // Log the max and min values for the location
-                        // console.log(`Max value for location ${locationName}:`, maxValue);
-                        // console.log(`Min value for location ${locationName}:`, minValue);
-
-                        // Check if the max value exceeds 999 or the min value is less than -999
-                        if (maxValue > 999 || minValue < -999) {
-                            // console.log(`Data spike detected in location ${locationName}: max = ${maxValue}, min = ${minValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                    } else {
-                        console.log(`No valid 'datman-api-data' found in location ${locationName}.`);
-                    }
-                }
-            }
-        }
-
-        // Return false if no data spikes were found
-        console.log('No data spikes detected in any location.');
-        return false;
-    }
-
     function hasDataSpike(data) {
         // Iterate through each key in the data object
         for (const locationIndex in data) {
@@ -727,7 +857,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    console.log('No assigned-locations found in basin:', item);
+                    // console.log('No assigned-locations found in basin:', item);
                     continue; // Skip to the next basin
                 }
 
@@ -735,30 +865,60 @@ document.addEventListener('DOMContentLoaded', async function () {
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
                     console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-                    const datmanMaxValue = location['datman-max-value'][0][`value`];
-                    const datmanMinValue = location['datman-min-value'][0][`value`];
 
-                    // Check if datmanMaxValue or datmanMinValue exists
-                    if (datmanMaxValue || datmanMinValue) {
-                        // Check if the max value exceeds 999 or the min value is less than -999
-                        if (datmanMaxValue > 999) {
-                            console.log(`Data spike detected in location ${locationName}: max = ${datmanMaxValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                        if (datmanMinValue < -999) {
-                            console.log(`Data spike detected in location ${locationName}: min = ${datmanMinValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                    } else {
-                        console.log(`No valid 'datman-max-value' or 'datman-min-value' found in location ${locationName}.`);
+                    const minTempWaterData = location['temp-water-min-value'];
+                    console.log("minTempWaterData: ", minTempWaterData);
+
+                    const minDepthData = location['depth-min-value'];
+                    console.log("minDepthData: ", minDepthData);
+
+                    const minDoData = location['do-min-value'];
+                    console.log("minDoData: ", minDoData);
+
+                    const maxTempWaterData = location['temp-water-max-value'];
+                    console.log("maxTempWaterData: ", maxTempWaterData);
+
+                    const maxDepthData = location['depth-max-value'];
+                    console.log("maxDepthData: ", maxDepthData);
+
+                    const maxDoData = location['do-max-value'];
+                    console.log("maxDoData: ", maxDoData);
+
+
+                    // Helper function to check for data spikes in a given data array
+                    const checkForSpikes = (dataArray, dataType) => {
+                        let spikeDetected = false;
+
+                        // Iterate through the data array and find any value exceeding limits
+                        dataArray.forEach(entry => {
+                            const value = parseFloat(entry.value); // Assuming the value is stored in the 'value' property
+                            console.log(`Checking ${dataType} value: `, value);
+
+                            // Check if the value exceeds 999 or is less than -9000
+                            if (value > 999 || value < -999) {
+                                console.log(`Data spike detected in location ${locationName}: ${dataType} value = ${value}`);
+                                spikeDetected = true; // Spike detected
+                            }
+                        });
+
+                        return spikeDetected; // Return true if any spike is found
+                    };
+
+                    // Check for spikes in temperature water, depth, and DO data
+                    if (checkForSpikes(minTempWaterData, 'temp-water-min') ||
+                        checkForSpikes(maxTempWaterData, 'temp-water-max') ||
+
+                        checkForSpikes(minDepthData, 'depth-min') ||
+                        checkForSpikes(maxDepthData, 'depth-max') ||
+
+                        checkForSpikes(minDoData, 'depth-min') ||
+                        checkForSpikes(maxDoData, 'depth-max')) {
+                        return true; // Return true if any spike is found
                     }
                 }
             }
         }
-
-        // Return false if no data spikes were found
-        console.log('No data spikes detected in any location.');
-        return false;
+        return false; // Return false if no spikes are found in any locations
     }
 
     function createTable(data) {
@@ -777,7 +937,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             headerRow.appendChild(idHeader);
             table.appendChild(headerRow);
 
-            // Create subheader row for "Time Series", "Value", "Date Time"
+            // Create subheader row for "Time Series", "Value", "Latest Time"
             const subHeaderRow = document.createElement('tr');
             ['Time Series', 'Value', 'Latest Time'].forEach(headerText => {
                 const td = document.createElement('td');
@@ -788,7 +948,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
-                const datmanData = location['extents-data']?.['datman'] || [];
+                const tempWaterData = location['extents-data']?.['temp-water'] || [];
+                const depthData = location['extents-data']?.['depth'] || [];
+                const doData = location['extents-data']?.['do'] || [];
 
                 // Function to create data row
                 const createDataRow = (tsid, value, timestamp) => {
@@ -815,32 +977,68 @@ document.addEventListener('DOMContentLoaded', async function () {
                     table.appendChild(dataRow);
                 };
 
-                // Process Datman data
-                datmanData.forEach(datmanEntry => {
-                    const tsid = datmanEntry.name; // Time-series ID from extents-data
+                // Process temperature water data
+                tempWaterData.forEach(tempEntry => {
+                    const tsid = tempEntry.name; // Time-series ID from extents-data
 
-                    // Safely access 'do-last-value'
-                    const lastDatmanValue = (Array.isArray(location['datman-last-value'])
-                        ? location['datman-last-value'].find(entry => entry && entry.tsid === tsid)
+                    // Safely access 'temp-water-last-value'
+                    const lastTempValue = (Array.isArray(location['temp-water-last-value'])
+                        ? location['temp-water-last-value'].find(entry => entry && entry.tsid === tsid)
                         : null) || { value: 'N/A', timestamp: 'N/A' };
 
-                    let dateTimeDatman = null;
-                    if (lastDatmanValue && lastDatmanValue.value !== 'N/A' && lastDatmanValue.value > - 900 && lastDatmanValue.value < 900) {
-                        // Format lastDatmanValue to two decimal places
-                        lastDatmanValue.value = parseFloat(lastDatmanValue.value).toFixed(2);
-                        dateTimeDatman = lastDatmanValue.timestamp;
-                        if (hasDataSpike(data)) {
-                            createDataRow(tsid, lastDatmanValue.value, dateTimeDatman);
-                        }
+                    let dateTime = null;
+                    if (lastTempValue && lastTempValue.value !== 'N/A' && lastTempValue.value > - 900 && lastTempValue.value < 900) {
+                        // Format lastTempValue to two decimal places
+                        lastTempValue.value = parseFloat(lastTempValue.value).toFixed(2);
+                        dateTime = lastTempValue.timestamp;
                     } else {
-                        dateTimeDatman = datmanEntry.latestTime;
-                        createDataRow(tsid, lastDatmanValue.value, dateTimeDatman);
+                        dateTime = tempEntry.latestTime;
+                        createDataRow(tsid, lastTempValue.value, dateTime);
                     }
                 });
 
+                // Process depth data
+                depthData.forEach(depthEntry => {
+                    const tsid = depthEntry.name; // Time-series ID from extents-data
+
+                    // Safely access 'depth-last-value'
+                    const lastDepthValue = (Array.isArray(location['depth-last-value'])
+                        ? location['depth-last-value'].find(entry => entry && entry.tsid === tsid)
+                        : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                    let dateTimeDepth = null;
+                    if (lastDepthValue && lastDepthValue.value !== 'N/A' && lastDepthValue.value > - 900 && lastDepthValue.value < 900) {
+                        // Format lastDepthValue to two decimal places
+                        lastDepthValue.value = parseFloat(lastDepthValue.value).toFixed(2);
+                        dateTimeDepth = lastDepthValue.timestamp;
+                    } else {
+                        dateTimeDepth = depthEntry.latestTime;
+                        createDataRow(tsid, lastDepthValue.value, dateTimeDepth);
+                    }
+                });
+
+                // Process DO (dissolved oxygen) data
+                doData.forEach(doEntry => {
+                    const tsid = doEntry.name; // Time-series ID from extents-data
+
+                    // Safely access 'do-last-value'
+                    const lastDoValue = (Array.isArray(location['do-last-value'])
+                        ? location['do-last-value'].find(entry => entry && entry.tsid === tsid)
+                        : null) || { value: 'N/A', timestamp: 'N/A' };
+
+                    let dateTimeDo = null;
+                    if (lastDoValue && lastDoValue.value !== 'N/A' && lastDoValue.value > - 900 && lastDoValue.value < 900) {
+                        // Format lastDoValue to two decimal places
+                        lastDoValue.value = parseFloat(lastDoValue.value).toFixed(2);
+                        dateTimeDo = lastDoValue.timestamp;
+                    } else {
+                        dateTimeDo = doEntry.latestTime;
+                        createDataRow(tsid, lastDoValue.value, dateTimeDo);
+                    }
+                });
 
                 // If no data available for temp-water, depth, and do
-                if (datmanData.length === 0) {
+                if (tempWaterData.length === 0 && depthData.length === 0 && doData.length === 0) {
                     const dataRow = document.createElement('tr');
 
                     const nameCell = document.createElement('td');
@@ -861,90 +1059,91 @@ document.addEventListener('DOMContentLoaded', async function () {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
 
-        // Create header row for the table
-        const headerRow = document.createElement('tr');
-        const idHeader = document.createElement('th');
-        idHeader.colSpan = 4;
-        idHeader.style.backgroundColor = 'darkblue';
-        idHeader.style.color = 'white';
-        idHeader.textContent = 'Spike Data'; // General header for the table
-        headerRow.appendChild(idHeader);
-        table.appendChild(headerRow);
-
-        // Create subheader row for "Time Series", "Max Value", "Latest Time"
-        const subHeaderRow = document.createElement('tr');
-        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
-            const td = document.createElement('td');
-            td.textContent = headerText;
-            subHeaderRow.appendChild(td);
-        });
-        table.appendChild(subHeaderRow);
-
-        let hasDataRows = false; // Flag to check if any valid data rows are created
-
         data.forEach(item => {
             const assignedLocations = item['assigned-locations'];
 
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
+                let hasDataRows = false; // Flag to check if any valid data rows are created
+
                 // Process each assigned location
                 assignedLocations.forEach(location => {
-                    const datmanData = location['extents-data']?.['datman'] || [];
+                    const tempWaterMaxData = location['temp-water-max-value'] || [];
+                    const depthMaxData = location['depth-max-value'] || [];
+                    const doMaxData = location['do-max-value'] || [];
 
-                    // Process Datman data
-                    datmanData.forEach(datmanEntry => {
-                        const tsid = datmanEntry.name; // Time-series ID from extents-data
+                    const tempWaterMinData = location['temp-water-min-value'] || [];
+                    const depthMinData = location['depth-min-value'] || [];
+                    const doMinData = location['do-min-value'] || [];
 
-                        let maxDatmanValue = null;
-                        let minDatmanValue = null;
+                    const ownerData = location['owner'][`assigned-locations`] || [];
+                    const locationIdData = location['location-id'] || [];
+                    console.log("ownerData: ", ownerData);
+                    console.log("locationIdData: ", locationIdData);
 
-                        maxDatmanValue = location['datman-max-value'][0][`value`];
-                        minDatmanValue = location['datman-min-value'][0][`value`];
+                    // Temporary storage for data entries to check for spikes
+                    const spikeData = [];
 
-                        // console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
-                        // console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
+                    // Check each data type for spikes, with both min and max values
+                    const checkForSpikes = (minDataArray, maxDataArray, type) => {
+                        minDataArray.forEach((minEntry, index) => {
+                            const tsid = minEntry.tsid;
+                            const minValue = parseFloat(minEntry.value); // Get min value
+                            const maxEntry = maxDataArray[index];
+                            const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
+                            const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
 
-                        const ownerData = location['owner'][`assigned-locations`] || [];
-                        const locationIdData = location['location-id'] || [];
-                        console.log("ownerData: ", ownerData);
-                        console.log("locationIdData: ", locationIdData);
-
-                        // Check if we found valid max and min values
-                        let dateTimeDatman = datmanEntry.latestTime; // Use latestTime for the timestamp
-                        if (maxDatmanValue !== undefined && maxDatmanValue !== null && minDatmanValue !== undefined && minDatmanValue !== null) {
-                            maxDatmanValue = parseFloat(maxDatmanValue).toFixed(2); // Format to two decimal places
-                            minDatmanValue = parseFloat(minDatmanValue).toFixed(2); // Format to two decimal places
-
-                            // Only create a row if either value exceeds the threshold
-                            if (maxDatmanValue > 900 || maxDatmanValue < -900 || minDatmanValue > 900 || minDatmanValue < -900) {
-                                createDataRow(tsid, maxDatmanValue, minDatmanValue, dateTimeDatman, ownerData, locationIdData);
+                            // Check for spike condition (both min and max)
+                            if (maxValue > 999 || minValue < -999) {
+                                spikeData.push({
+                                    tsid,
+                                    maxValue: maxValue.toFixed(2),
+                                    minValue: minValue.toFixed(2),
+                                    timestamp: latestTime
+                                });
                                 hasDataRows = true; // Mark that we have valid data rows
                             }
-                        }
-                    });
+                        });
+                    };
 
-                    // If no valid data rows were added for this location, add a "No Data Available" row
-                    if (datmanData.length === 0) {
-                        const dataRow = document.createElement('tr');
-                        const nameCell = document.createElement('td');
-                        nameCell.textContent = 'No Data Available';
-                        nameCell.colSpan = 3; // Span across all three columns
-                        dataRow.appendChild(nameCell);
-                        table.appendChild(dataRow);
+                    // Check for spikes in each type of data
+                    checkForSpikes(tempWaterMinData, tempWaterMaxData, 'Temp-Water');
+                    checkForSpikes(depthMinData, depthMaxData, 'Depth');
+                    checkForSpikes(doMinData, doMaxData, 'DO');
+
+                    // Log the collected spike data for debugging
+                    console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
+                    console.log("hasDataRows: ", hasDataRows);
+
+                    // Create header and subheader if we have spike data
+                    if (hasDataRows) {
+                        // Create header row for the item's ID
+                        const headerRow = document.createElement('tr');
+                        const idHeader = document.createElement('th');
+                        idHeader.colSpan = 4; // Adjusting colspan for an additional column
+                        idHeader.style.backgroundColor = 'darkblue';
+                        idHeader.style.color = 'white';
+                        idHeader.textContent = item.id; // Display the item's ID
+                        headerRow.appendChild(idHeader);
+                        table.appendChild(headerRow);
+
+                        // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
+                        const subHeaderRow = document.createElement('tr');
+                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
+                            const td = document.createElement('td');
+                            td.textContent = headerText;
+                            subHeaderRow.appendChild(td);
+                        });
+                        table.appendChild(subHeaderRow);
+
+                        // Append data rows for spikes
+                        spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
+                            createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData);
+                        });
                     }
                 });
             }
         });
-
-        // If no valid data rows were added, you may want to add a message or handle it as appropriate
-        if (!hasDataRows) {
-            const noDataRow = document.createElement('tr');
-            const noDataCell = document.createElement('td');
-            noDataCell.textContent = 'No Spikes Detected';
-            noDataCell.colSpan = 3; // Span across all three columns
-            noDataRow.appendChild(noDataCell);
-            table.appendChild(noDataRow);
-        }
 
         return table;
 
@@ -962,12 +1161,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             const maxValueCell = document.createElement('td');
+            // Wrap the max value in a span with the blinking-text class
             const maxValueSpan = document.createElement('span');
             maxValueSpan.classList.add('blinking-text');
             maxValueSpan.textContent = maxValue;
             maxValueCell.appendChild(maxValueSpan);
 
             const minValueCell = document.createElement('td');
+            // Wrap the min value in a span with the blinking-text class
             const minValueSpan = document.createElement('span');
             minValueSpan.classList.add('blinking-text');
             minValueSpan.textContent = minValue;
@@ -984,4 +1185,5 @@ document.addEventListener('DOMContentLoaded', async function () {
             table.appendChild(dataRow);
         }
     }
+
 });
