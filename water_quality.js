@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Set the category and base URL for API calls
     let setCategory = "Alarm-Water-Quality";
 
+    // Get the current date and time, and compute a "look-back" time for historical data
+    const currentDateTime = new Date();
+    const lookBackHours = subtractHoursFromDate(new Date(), 25);
+
     let setBaseUrl = null;
     if (cda === "internal") {
         setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
@@ -32,10 +36,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     const tempWaterTsidPromises = [];
     const depthTsidPromises = [];
     const doTsidPromises = [];
-
-    // Get the current date and time, and compute a "look-back" time for historical data
-    const currentDateTime = new Date();
-    const lookBackHours = subtractHoursFromDate(new Date(), 25); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -573,6 +573,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
     }
 
+    function subtractDaysFromDate(date, daysToSubtract) {
+        return new Date(date.getTime() - (daysToSubtract * 24 * 60 * 60 * 1000));
+    }
+
     function formatISODate2ReadableDate(timestamp) {
         const date = new Date(timestamp);
         const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
@@ -656,18 +660,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (let i = 0; i < data.values.length; i++) {
             // Check if the value at index i is not null and within a reasonable range
             // if (data.values[i][1] !== null && data.values[i][1] > 99999) { // Adjust threshold as necessary
-                // Check if the value at index i is not null
-                if (data.values[i][1] !== null) {
-                    // If maxEntry is null or the current value is greater than the maxEntry's value
-                    if (maxEntry === null || data.values[i][1] > maxEntry.value) {
-                        maxEntry = {
-                            tsid: tsid,
-                            timestamp: data.values[i][0],
-                            value: data.values[i][1],
-                            qualityCode: data.values[i][2]
-                        };
-                    }
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // If maxEntry is null or the current value is greater than the maxEntry's value
+                if (maxEntry === null || data.values[i][1] > maxEntry.value) {
+                    maxEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
                 }
+            }
             // }
         }
 
@@ -682,18 +686,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (let i = 0; i < data.values.length; i++) {
             // Check if the value at index i is not null and within a reasonable range
             // if (data.values[i][1] !== null && data.values[i][1] < 99999) { // Adjust threshold as necessary
-                // Check if the value at index i is not null
-                if (data.values[i][1] !== null) {
-                    // If minEntry is null or the current value is smaller than the minEntry's value
-                    if (minEntry === null || data.values[i][1] < minEntry.value) {
-                        minEntry = {
-                            tsid: tsid,
-                            timestamp: data.values[i][0],
-                            value: data.values[i][1],
-                            qualityCode: data.values[i][2]
-                        };
-                    }
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // If minEntry is null or the current value is smaller than the minEntry's value
+                if (minEntry === null || data.values[i][1] < minEntry.value) {
+                    minEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
                 }
+            }
             // }
 
             // Return the min entry (or null if no valid values were found)
@@ -995,10 +999,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableDataSpike(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
-    
+
         data.forEach(item => {
             const assignedLocations = item['assigned-locations'];
-    
+
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
 
@@ -1009,19 +1013,19 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const tempWaterMaxData = location['temp-water-max-value'] || [];
                     const depthMaxData = location['depth-max-value'] || [];
                     const doMaxData = location['do-max-value'] || [];
-    
+
                     const tempWaterMinData = location['temp-water-min-value'] || [];
                     const depthMinData = location['depth-min-value'] || [];
                     const doMinData = location['do-min-value'] || [];
-    
+
                     const ownerData = location['owner'][`assigned-locations`] || [];
                     const locationIdData = location['location-id'] || [];
                     console.log("ownerData: ", ownerData);
                     console.log("locationIdData: ", locationIdData);
-    
+
                     // Temporary storage for data entries to check for spikes
                     const spikeData = [];
-    
+
                     // Check each data type for spikes, with both min and max values
                     const checkForSpikes = (minDataArray, maxDataArray, type) => {
                         minDataArray.forEach((minEntry, index) => {
@@ -1030,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const maxEntry = maxDataArray[index];
                             const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
                             const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
-    
+
                             // Check for spike condition (both min and max)
                             if (maxValue > 999 || minValue < -999) {
                                 spikeData.push({
@@ -1043,16 +1047,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         });
                     };
-    
+
                     // Check for spikes in each type of data
                     checkForSpikes(tempWaterMinData, tempWaterMaxData, 'Temp-Water');
                     checkForSpikes(depthMinData, depthMaxData, 'Depth');
                     checkForSpikes(doMinData, doMaxData, 'DO');
-    
+
                     // Log the collected spike data for debugging
                     console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
                     console.log("hasDataRows: ", hasDataRows);
-    
+
                     // Create header and subheader if we have spike data
                     if (hasDataRows) {
                         // Create header row for the item's ID
@@ -1064,16 +1068,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                         idHeader.textContent = item.id; // Display the item's ID
                         headerRow.appendChild(idHeader);
                         table.appendChild(headerRow);
-    
+
                         // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
                         const subHeaderRow = document.createElement('tr');
-                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
+                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach((headerText, index) => {
                             const td = document.createElement('td');
                             td.textContent = headerText;
+
+                            // Set width for each column
+                            if (index === 0) {
+                                td.style.width = '50%';
+                            } else if (index === 1 || index === 2) {
+                                td.style.width = '15%';
+                            } else {
+                                td.style.width = '20%';
+                            }
+
                             subHeaderRow.appendChild(td);
                         });
                         table.appendChild(subHeaderRow);
-    
+
                         // Append data rows for spikes
                         spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
                             createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData);
@@ -1082,46 +1096,45 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
             }
         });
-    
+
         return table;
-    
+
         // Helper function to create data rows
         function createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData) {
             const dataRow = document.createElement('tr');
-    
+
             const nameCell = document.createElement('td');
             nameCell.textContent = tsid;
-    
+
             // Check if locationIdData matches any entry in ownerData
             const isMatch = ownerData.some(owner => owner['location-id'] === locationIdData);
             if (!isMatch) {
                 nameCell.style.color = 'darkblue'; // Apply dark blue color if there's a match
             }
-    
+
             const maxValueCell = document.createElement('td');
             // Wrap the max value in a span with the blinking-text class
             const maxValueSpan = document.createElement('span');
             maxValueSpan.classList.add('blinking-text');
             maxValueSpan.textContent = maxValue;
             maxValueCell.appendChild(maxValueSpan);
-    
+
             const minValueCell = document.createElement('td');
             // Wrap the min value in a span with the blinking-text class
             const minValueSpan = document.createElement('span');
             minValueSpan.classList.add('blinking-text');
             minValueSpan.textContent = minValue;
             minValueCell.appendChild(minValueSpan);
-    
+
             const latestTimeCell = document.createElement('td');
             latestTimeCell.textContent = timestamp;
-    
+
             dataRow.appendChild(nameCell);
             dataRow.appendChild(maxValueCell);
             dataRow.appendChild(minValueCell);
             dataRow.appendChild(latestTimeCell);
-    
+
             table.appendChild(dataRow);
         }
     }
-    
 });

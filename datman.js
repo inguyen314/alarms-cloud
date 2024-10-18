@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Set the category and base URL for API calls
     let setCategory = "Datman";
 
+    // Get the current date and time, and compute a "look-back" time for historical data
+    const currentDateTime = new Date();
+    const lookBackHours = subtractDaysFromDate(new Date(), 90);
+
     let setBaseUrl = null;
     if (cda === "internal") {
         setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
@@ -28,10 +32,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     const metadataPromises = [];
     const ownerPromises = [];
     const datmanTsidPromises = [];
-
-    // Get the current date and time, and compute a "look-back" time for historical data
-    const currentDateTime = new Date();
-    const lookBackHours = subtractDaysFromDate(new Date(), 90); // Subtract 12 hours from the current time
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -927,9 +927,19 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
                         const subHeaderRow = document.createElement('tr');
-                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
+                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach((headerText, index) => {
                             const td = document.createElement('td');
                             td.textContent = headerText;
+
+                            // Set width for each column
+                            if (index === 0) {
+                                td.style.width = '50%';
+                            } else if (index === 1 || index === 2) {
+                                td.style.width = '15%';
+                            } else {
+                                td.style.width = '20%';
+                            }
+
                             subHeaderRow.appendChild(td);
                         });
                         table.appendChild(subHeaderRow);
