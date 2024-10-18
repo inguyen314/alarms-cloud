@@ -861,90 +861,88 @@ document.addEventListener('DOMContentLoaded', async function () {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
 
-        // Create header row for the table
-        const headerRow = document.createElement('tr');
-        const idHeader = document.createElement('th');
-        idHeader.colSpan = 4;
-        idHeader.style.backgroundColor = 'darkblue';
-        idHeader.style.color = 'white';
-        idHeader.textContent = 'Spike Data'; // General header for the table
-        headerRow.appendChild(idHeader);
-        table.appendChild(headerRow);
-
-        // Create subheader row for "Time Series", "Max Value", "Latest Time"
-        const subHeaderRow = document.createElement('tr');
-        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
-            const td = document.createElement('td');
-            td.textContent = headerText;
-            subHeaderRow.appendChild(td);
-        });
-        table.appendChild(subHeaderRow);
-
-        let hasDataRows = false; // Flag to check if any valid data rows are created
-
         data.forEach(item => {
             const assignedLocations = item['assigned-locations'];
 
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
+
                 // Process each assigned location
                 assignedLocations.forEach(location => {
-                    const datmanData = location['extents-data']?.['datman'] || [];
+                    let hasDataRows = false; // Reset flag for each location
 
-                    // Process Datman data
-                    datmanData.forEach(datmanEntry => {
-                        const tsid = datmanEntry.name; // Time-series ID from extents-data
+                    const datmanMaxData = location['datman-max-value'] || [];
+                    const datmanMinData = location['datman-min-value'] || [];
+                    const ownerData = location['owner'][`assigned-locations`] || [];
+                    const locationIdData = location['location-id'] || [];
 
-                        let maxDatmanValue = null;
-                        let minDatmanValue = null;
+                    console.log("ownerData: ", ownerData);
+                    console.log("locationIdData: ", locationIdData);
 
-                        maxDatmanValue = location['datman-max-value'][0][`value`];
-                        minDatmanValue = location['datman-min-value'][0][`value`];
+                    // Temporary storage for data entries to check for spikes
+                    const spikeData = [];
 
-                        // console.log("maxDatmanValue: ", location['location-id'] + " - " + maxDatmanValue);
-                        // console.log("minDatmanValue: ", location['location-id'] + " - " + minDatmanValue);
+                    // Check each data type for spikes, with both min and max values
+                    const checkForSpikes = (minDataArray, maxDataArray) => {
+                        minDataArray.forEach((minEntry, index) => {
+                            const tsid = minEntry.tsid;
+                            const minValue = parseFloat(minEntry.value); // Get min value
+                            const maxEntry = maxDataArray[index];
+                            const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
+                            const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
 
-                        const ownerData = location['owner'][`assigned-locations`] || [];
-                        const locationIdData = location['location-id'] || [];
-                        console.log("ownerData: ", ownerData);
-                        console.log("locationIdData: ", locationIdData);
-
-                        // Check if we found valid max and min values
-                        let dateTimeDatman = datmanEntry.latestTime; // Use latestTime for the timestamp
-                        if (maxDatmanValue !== undefined && maxDatmanValue !== null && minDatmanValue !== undefined && minDatmanValue !== null) {
-                            maxDatmanValue = parseFloat(maxDatmanValue).toFixed(2); // Format to two decimal places
-                            minDatmanValue = parseFloat(minDatmanValue).toFixed(2); // Format to two decimal places
-
-                            // Only create a row if either value exceeds the threshold
-                            if (maxDatmanValue > 900 || maxDatmanValue < -900 || minDatmanValue > 900 || minDatmanValue < -900) {
-                                createDataRow(tsid, maxDatmanValue, minDatmanValue, dateTimeDatman, ownerData, locationIdData);
+                            // Check for spike condition (both min and max)
+                            if (maxValue > 999 || minValue < -999) {
+                                spikeData.push({
+                                    tsid,
+                                    maxValue: maxValue.toFixed(2),
+                                    minValue: minValue.toFixed(2),
+                                    timestamp: latestTime
+                                });
                                 hasDataRows = true; // Mark that we have valid data rows
                             }
-                        }
-                    });
+                        });
+                    };
 
-                    // If no valid data rows were added for this location, add a "No Data Available" row
-                    if (datmanData.length === 0) {
-                        const dataRow = document.createElement('tr');
-                        const nameCell = document.createElement('td');
-                        nameCell.textContent = 'No Data Available';
-                        nameCell.colSpan = 3; // Span across all three columns
-                        dataRow.appendChild(nameCell);
-                        table.appendChild(dataRow);
+                    // Check for spikes in each type of data
+                    checkForSpikes(datmanMinData, datmanMaxData);
+
+                    // Log the collected spike data for debugging
+                    console.log("datmanMaxData: ", datmanMaxData);
+                    console.log("datmanMinData: ", datmanMinData);
+                    console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
+                    console.log("hasDataRows: ", hasDataRows);
+
+                    // Create header and subheader if we have spike data
+                    if (hasDataRows) {
+                        // Create header row for the item's ID
+                        const headerRow = document.createElement('tr');
+                        const idHeader = document.createElement('th');
+                        idHeader.colSpan = 4; // Adjusting colspan for an additional column
+                        idHeader.style.backgroundColor = 'darkblue';
+                        idHeader.style.color = 'white';
+                        idHeader.textContent = item.id; // Display the item's ID
+                        headerRow.appendChild(idHeader);
+                        table.appendChild(headerRow);
+
+                        // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
+                        const subHeaderRow = document.createElement('tr');
+                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach(headerText => {
+                            const td = document.createElement('td');
+                            td.textContent = headerText;
+                            subHeaderRow.appendChild(td);
+                        });
+                        table.appendChild(subHeaderRow);
+
+                        // Append data rows for spikes
+                        spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
+                            createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData);
+                        });
                     }
                 });
             }
         });
 
-        // If no valid data rows were added, you may want to add a message or handle it as appropriate
-        if (!hasDataRows) {
-            const noDataRow = document.createElement('tr');
-            const noDataCell = document.createElement('td');
-            noDataCell.textContent = 'No Spikes Detected';
-            noDataCell.colSpan = 3; // Span across all three columns
-            noDataRow.appendChild(noDataCell);
-            table.appendChild(noDataRow);
-        }
 
         return table;
 
@@ -962,12 +960,14 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             const maxValueCell = document.createElement('td');
+            // Wrap the max value in a span with the blinking-text class
             const maxValueSpan = document.createElement('span');
             maxValueSpan.classList.add('blinking-text');
             maxValueSpan.textContent = maxValue;
             maxValueCell.appendChild(maxValueSpan);
 
             const minValueCell = document.createElement('td');
+            // Wrap the min value in a span with the blinking-text class
             const minValueSpan = document.createElement('span');
             minValueSpan.classList.add('blinking-text');
             minValueSpan.textContent = minValue;

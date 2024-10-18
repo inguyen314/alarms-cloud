@@ -1001,10 +1001,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     
             // Proceed only if there are assigned locations
             if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
-                let hasDataRows = false; // Flag to check if any valid data rows are created
-    
+
                 // Process each assigned location
                 assignedLocations.forEach(location => {
+                    let hasDataRows = false; // Flag to check if any valid data rows are created
+
                     const tempWaterMaxData = location['temp-water-max-value'] || [];
                     const depthMaxData = location['depth-max-value'] || [];
                     const doMaxData = location['do-max-value'] || [];
@@ -1093,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     
             // Check if locationIdData matches any entry in ownerData
             const isMatch = ownerData.some(owner => owner['location-id'] === locationIdData);
-            if (isMatch) {
+            if (!isMatch) {
                 nameCell.style.color = 'darkblue'; // Apply dark blue color if there's a match
             }
     
