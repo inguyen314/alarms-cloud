@@ -835,23 +835,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                         console.log(`doTsidArray is either empty or not an array for location ${locationName}.`);
                     }
 
-                    // If none of the arrays have a valid entry, mark the location as invalid
+                    console.log("hasValidValue: ", hasValidValue);
+
                     if (!hasValidValue) {
-                        console.log(`No valid entries found in location ${locationName}.`);
-                        allLocationsValid = false; // Set flag to false if any location is invalid
+                        console.log(`No valid entries found in location ${locationName}. ${location}`);
+                        allLocationsValid = false;
                     }
                 }
             }
         }
 
-        // Return true only if all locations are valid
-        if (allLocationsValid) {
-            console.log('All locations have valid entries.');
-            return true;
-        } else {
-            console.log('Some locations are missing valid entries.');
-            return false;
-        }
+        return allLocationsValid;
     }
 
     function hasDataSpike(data) {
