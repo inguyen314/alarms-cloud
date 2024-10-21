@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', async function () {
     const currentDateTime = new Date();
 
-    let setCategory = null;
+    let setLocationCategory = null;
+    let locationGroupOwner = null;
     let timeseriesGroup1 = null;
     let lookBackHours = null;
     let alarmDiv = null;
@@ -9,32 +10,45 @@ document.addEventListener('DOMContentLoaded', async function () {
     if ("datman" === "datman") {
         // Set the category and base URL for API calls
         // alarmDiv = "datman";
-        // setCategory = "Datman";
+        // setLocationCategory = "Basins";
+        // locationGroupOwner = "Datman";
         // timeseriesGroup1 = "Datman";
         // lookBackHours = subtractDaysFromDate(new Date(), 90);
-    } 
-    
+    }
+
     if ("mvd-hist" === "mvd-hist") {
         // Set the category and base URL for API calls
-        alarmDiv = "mvd_hist";
-        setCategory = "Mvd-Hist";
-        timeseriesGroup1 = "Mvd-Hist"
+        alarmDiv = "mvd_hist"; // mvd_hist
+        setLocationCategory = "Mvd-Hist";
+        locationGroupOwner = "MVD";
+        timeseriesGroup1 = "Mvd-Hist";
         lookBackHours = subtractDaysFromDate(new Date(), 3);
+    }
+
+    if ("water-quality" === "water-quality") {
+        // Set the category and base URL for API calls
+        // alarmDiv = "datman";
+        // setLocationCategory = "Alarm-Water-Quality";
+        // locationGroupOwner = "Temp-Water";
+        // timeseriesGroup1 = "Temp-Water";
+        // lookBackHours = subtractDaysFromDate(new Date(), 3);
     }
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_alarm_${alarmDiv}`);
     loadingIndicator.style.display = 'block'; // Show the loading indicator
 
-    
 
-    console.log("setCategory: ", setCategory);
+
+    console.log("setLocationCategory: ", setLocationCategory);
     console.log("timeseriesGroup1: ", timeseriesGroup1);
+    console.log("locationGroupOwner: ", locationGroupOwner);
     console.log("lookBackHours: ", lookBackHours);
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        // setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         // console.log("setBaseUrl: ", setBaseUrl);
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
@@ -42,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // Define the URL to fetch location groups based on category
-    const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
+    const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setLocationCategory}`;
     // console.log("categoryApiUrl: ", categoryApiUrl);
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
@@ -70,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             // Filter and map the returned data to basins belonging to the target category
-            const targetCategory = { "office-id": office, "id": setCategory };
+            const targetCategory = { "office-id": office, "id": setLocationCategory };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
 
@@ -85,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Loop through each basin and fetch data for its assigned locations
             basins.forEach(basin => {
-                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setCategory}`;
+                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setLocationCategory}`;
                 // console.log("basinApiUrl: ", basinApiUrl);
 
                 apiPromises.push(
@@ -138,7 +152,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Fetch owner for each location
-                                    let ownerApiUrl = setBaseUrl + `location/group/${office}?office=${office}&category-id=${office}`;
+                                    let ownerApiUrl = setBaseUrl + `location/group/${locationGroupOwner}?office=${office}&category-id=${office}`;
+                                    // console.log("ownerApiUrl: ", ownerApiUrl);
                                     if (ownerApiUrl) {
                                         ownerPromises.push(
                                             fetch(ownerApiUrl)
@@ -369,6 +384,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         allTids.forEach((tsid, index) => {
                                             // console.log("tsid:", tsid);
                                             const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
+                                            // console.log("matchingEntry:", matchingEntry);
                                             if (matchingEntry) {
                                                 // Construct dynamic key
                                                 let _data = {
@@ -413,23 +429,50 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 })
                 .then(() => {
+                    // Assuming this is inside a promise chain (like in a `.then()`)
+
                     console.log('All combinedData data fetched successfully:', combinedData);
 
-                    // Check and remove all attribute ending in 0.1
+                    // Step 1: Filter out locations where 'attribute' ends with '.1'
                     combinedData.forEach((dataObj, index) => {
-                        // console.log(`Processing dataObj at index ${index}:`, dataObj[`assigned-locations`]);
+                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
 
-                        // Filter out locations where the 'attribute' ends with '.1'
-                        dataObj[`assigned-locations`] = dataObj[`assigned-locations`].filter(location => {
-                            const attribute = location[`attribute`].toString();
+                        // Filter out locations with 'attribute' ending in '.1'
+                        dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
+                            const attribute = location['attribute'].toString();
                             // console.log(`Checking attribute: ${attribute}`);
                             return !attribute.endsWith('.1');
                         });
 
-                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj[`assigned-locations`]);
+                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
                     });
 
-                    console.log('All combinedData data filtered successfully:', combinedData);
+                    console.log('Filtered all locations ending with .1 successfully:', combinedData);
+
+                    // Step 2: Filter out locations where 'location-id' doesn't match owner's 'assigned-locations'
+                    combinedData.forEach(dataGroup => {
+                        // Iterate over each assigned-location in the dataGroup
+                        let locations = dataGroup['assigned-locations'];
+
+                        // Loop through the locations array in reverse to safely remove items
+                        for (let i = locations.length - 1; i >= 0; i--) {
+                            let location = locations[i];
+
+                            // Find if the current location-id exists in owner's assigned-locations
+                            let matchingOwnerLocation = location['owner']['assigned-locations'].some(ownerLoc => {
+                                return ownerLoc['location-id'] === location['location-id'];
+                            });
+
+                            // If no match, remove the location
+                            if (!matchingOwnerLocation) {
+                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                locations.splice(i, 1);
+                            }
+                        }
+                    });
+
+                    console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
+
 
                     if (type === "status") {
                         // Only call createTable if no valid data exists
@@ -490,11 +533,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             loadingIndicator.style.display = 'none';
         });
 
-    function filterByLocationCategory(array, setCategory) {
+    function filterByLocationCategory(array, setLocationCategory) {
         return array.filter(item =>
             item['location-category'] &&
-            item['location-category']['office-id'] === setCategory['office-id'] &&
-            item['location-category']['id'] === setCategory['id']
+            item['location-category']['office-id'] === setLocationCategory['office-id'] &&
+            item['location-category']['id'] === setLocationCategory['id']
         );
     }
 
@@ -777,28 +820,28 @@ document.addEventListener('DOMContentLoaded', async function () {
         for (const locationIndex in data) {
             if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
                 const item = data[locationIndex];
-    
+
                 const assignedLocations = item['assigned-locations'];
                 // Check if assigned-locations is an object
                 if (typeof assignedLocations !== 'object' || assignedLocations === null) {
                     continue; // Skip to the next basin
                 }
-    
+
                 // Iterate through each location in assigned-locations
                 for (const locationName in assignedLocations) {
                     const location = assignedLocations[locationName];
-    
+
                     // Safely check datman-max-value and datman-min-value
                     const datmanMaxValueArray = location['datman-max-value'];
                     const datmanMinValueArray = location['datman-min-value'];
-    
+
                     // Ensure that both are valid arrays and have at least one element
                     if (Array.isArray(datmanMaxValueArray) && datmanMaxValueArray.length > 0 &&
                         Array.isArray(datmanMinValueArray) && datmanMinValueArray.length > 0) {
-                        
+
                         const datmanMaxValue = datmanMaxValueArray[0]?.value ?? null;
                         const datmanMinValue = datmanMinValueArray[0]?.value ?? null;
-    
+
                         // Check if datmanMaxValue or datmanMinValue exists and are valid numbers
                         if (datmanMaxValue !== null && datmanMinValue !== null) {
                             // Check if the max value exceeds 999 or the min value is less than -999
@@ -819,31 +862,31 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             }
         }
-    
+
         // Return false if no data spikes were found
         return false;
     }
-    
+
     function createTable(data) {
         const table = document.createElement('table');
         table.id = 'customers';
-    
+
         data.forEach(item => {
             let shouldPrintHeader = false;
-    
+
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
                 const datmanData = location['extents-data']?.['datman'] || [];
-    
+
                 // Check if any datmanEntry has lastDatmanValue as 'N/A'
                 datmanData.forEach(datmanEntry => {
                     const tsid = datmanEntry.name;
                     const earliestTime = datmanEntry.earliestTime;
                     const latestTime = datmanEntry.latestTime;
-    
+
                     // Check if 'datman-last-value' and corresponding entry exist
                     const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-    
+
                     // Safely check lastDatmanValue and its properties
                     if (lastDatmanValue && lastDatmanValue.value === 'N/A') {
                         // Only print the header once if needed
@@ -857,7 +900,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             idHeader.textContent = item.id;
                             headerRow.appendChild(idHeader);
                             table.appendChild(headerRow);
-    
+
                             // Create subheader row
                             const subHeaderRow = document.createElement('tr');
                             ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
@@ -866,22 +909,22 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 subHeaderRow.appendChild(td);
                             });
                             table.appendChild(subHeaderRow);
-    
+
                             shouldPrintHeader = true;
                         }
-    
+
                         // Create the link for tsid
                         const link = document.createElement('a');
                         const cda = ''; // You may need to assign the appropriate value for 'cda'
                         link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
-    
+
                         // Create the row for 'N/A' value
                         const valueSpan = document.createElement('span');
                         valueSpan.classList.add('blinking-text');
                         valueSpan.textContent = 'N/A';
-    
+
                         const createDataRow = (cells) => {
                             const dataRow = document.createElement('tr');
                             cells.forEach(cellValue => {
@@ -895,16 +938,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             });
                             table.appendChild(dataRow);
                         };
-    
+
                         createDataRow([link, valueSpan, earliestTime, latestTime]);
                     }
                 });
             });
         });
-    
+
         return table;
     }
-       
+
     function createTableStatus(data) {
         const table = document.createElement('table');
         table.id = 'customers';

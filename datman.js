@@ -1,37 +1,42 @@
 document.addEventListener('DOMContentLoaded', async function () {
     const currentDateTime = new Date();
 
-    let setCategory = null;
-    let timeseriesGroup1 = null;
-    let lookBackHours = null;
+    let setLocationCategory = null;
+    let setLocationGroupOwner = null;
+    let setTimeseriesGroup1 = null;
+    let setLookBackHours = null;
     let alarmDiv = null;
-    let locationGroupOwner = null;
 
-    if ("datman" === "datman") {
+    let reportNumber = 4;
+
+    if (reportNumber === 1) {
         // Set the category and base URL for API calls
         alarmDiv = "datman";
-        setCategory = "Basins";
-        timeseriesGroup1 = "Datman";
-        locationGroupOwner = "Datman";
-        lookBackHours = subtractDaysFromDate(new Date(), 90);
-    }
-
-    if ("mvd-hist" === "mvd-hist") {
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "Datman";
+        setTimeseriesGroup1 = "Datman";
+        setLookBackHours = subtractDaysFromDate(new Date(), 90);
+    } else if (reportNumber === 2) {
         // Set the category and base URL for API calls
-        // alarmDiv = "mvd_hist";
-        // setCategory = "Mvd-Hist";
-        // timeseriesGroup1 = "Mvd-Hist"
-        // locationGroupOwner = "Mvd-Hist"
-        // lookBackHours = subtractDaysFromDate(new Date(), 3);
-    }
-
-    if ("water-quality" === "water-quality") {
+        alarmDiv = "datman"; // mvd_hist
+        setLocationCategory = "Mvd-Hist";
+        setLocationGroupOwner = "MVD";
+        setTimeseriesGroup1 = "Mvd-Hist";
+        setLookBackHours = subtractDaysFromDate(new Date(), 3);
+    } else if (reportNumber === 3) {
         // Set the category and base URL for API calls
-        // alarmDiv = "datman";
-        // setCategory = "Alarm-Water-Quality";
-        // timeseriesGroup1 = "Temp-Water";
-        // locationGroupOwner = "Temp-Water";
-        // lookBackHours = subtractDaysFromDate(new Date(), 3);
+        alarmDiv = "datman"; // water_quality
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Conc-DO";
+        setLookBackHours = subtractDaysFromDate(new Date(), 3);
+    } else if (reportNumber === 4) {
+        // Set the category and base URL for API calls
+        alarmDiv = "datman"; // water_quality
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Stage";
+        setLookBackHours = subtractDaysFromDate(new Date(), 3);
     }
 
     // Display the loading indicator for water quality alarm
@@ -40,9 +45,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
 
-    console.log("setCategory: ", setCategory);
-    console.log("timeseriesGroup1: ", timeseriesGroup1);
-    console.log("lookBackHours: ", lookBackHours);
+    console.log("setLocationCategory: ", setLocationCategory);
+    console.log("setLocationGroupOwner: ", setLocationGroupOwner);
+    console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
+    console.log("setLookBackHours: ", setLookBackHours);
 
     let setBaseUrl = null;
     if (cda === "internal") {
@@ -55,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // Define the URL to fetch location groups based on category
-    const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
+    const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setLocationCategory}`;
     // console.log("categoryApiUrl: ", categoryApiUrl);
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
@@ -83,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             // Filter and map the returned data to basins belonging to the target category
-            const targetCategory = { "office-id": office, "id": setCategory };
+            const targetCategory = { "office-id": office, "id": setLocationCategory };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
 
@@ -98,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Loop through each basin and fetch data for its assigned locations
             basins.forEach(basin => {
-                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setCategory}`;
+                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setLocationCategory}`;
                 // console.log("basinApiUrl: ", basinApiUrl);
 
                 apiPromises.push(
@@ -151,8 +157,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Fetch owner for each location
-                                    let ownerApiUrl = setBaseUrl + `location/group/${locationGroupOwner}?office=${office}&category-id=${office}`;
-                                    console.log("ownerApiUrl: ", ownerApiUrl);
+                                    let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
+                                    // console.log("ownerApiUrl: ", ownerApiUrl);
                                     if (ownerApiUrl) {
                                         ownerPromises.push(
                                             fetch(ownerApiUrl)
@@ -180,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
                                     // Fetch datman TSID data
-                                    const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${timeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
+                                    const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
                                     // console.log('tsidDatmanApiUrl:', tsidDatmanApiUrl);
                                     datmanTsidPromises.push(
                                         fetch(tsidDatmanApiUrl)
@@ -262,7 +268,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const timeSeriesDataFetchPromises = (timeSeries, type) => {
                                 return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
-                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${lookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${setLookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
                                     // console.log('timeSeriesDataApiUrl:', timeSeriesDataApiUrl);
 
                                     return fetch(timeSeriesDataApiUrl, {
@@ -383,6 +389,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         allTids.forEach((tsid, index) => {
                                             // console.log("tsid:", tsid);
                                             const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
+                                            // console.log("matchingEntry:", matchingEntry);
                                             if (matchingEntry) {
                                                 // Construct dynamic key
                                                 let _data = {
@@ -433,16 +440,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Step 1: Filter out locations where 'attribute' ends with '.1'
                     combinedData.forEach((dataObj, index) => {
-                        console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
+                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
 
                         // Filter out locations with 'attribute' ending in '.1'
                         dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
                             const attribute = location['attribute'].toString();
-                            console.log(`Checking attribute: ${attribute}`);
+                            // console.log(`Checking attribute: ${attribute}`);
                             return !attribute.endsWith('.1');
                         });
 
-                        console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
+                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
                     });
 
                     console.log('Filtered all locations ending with .1 successfully:', combinedData);
@@ -463,7 +470,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // If no match, remove the location
                             if (!matchingOwnerLocation) {
-                                console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
                                 locations.splice(i, 1);
                             }
                         }
@@ -531,11 +538,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             loadingIndicator.style.display = 'none';
         });
 
-    function filterByLocationCategory(array, setCategory) {
+    function filterByLocationCategory(array, setLocationCategory) {
         return array.filter(item =>
             item['location-category'] &&
-            item['location-category']['office-id'] === setCategory['office-id'] &&
-            item['location-category']['id'] === setCategory['id']
+            item['location-category']['office-id'] === setLocationCategory['office-id'] &&
+            item['location-category']['id'] === setLocationCategory['id']
         );
     }
 
