@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 4;
+    let reportNumber = 1;
 
     if (reportNumber === 1) {
         // Set the category and base URL for API calls
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationCategory = "Mvd-Hist";
         setLocationGroupOwner = "MVD";
         setTimeseriesGroup1 = "Mvd-Hist";
-        setLookBackHours = subtractDaysFromDate(new Date(), 3);
+        setLookBackHours = subtractDaysFromDate(new Date(), 5);
     } else if (reportNumber === 3) {
         // Set the category and base URL for API calls
         alarmDiv = "datman"; // water_quality
@@ -42,8 +42,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_alarm_${alarmDiv}`);
     loadingIndicator.style.display = 'block'; // Show the loading indicator
-
-
 
     console.log("setLocationCategory: ", setLocationCategory);
     console.log("setLocationGroupOwner: ", setLocationGroupOwner);
@@ -184,7 +182,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         );
                                     }
 
-
                                     // Fetch datman TSID data
                                     const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
                                     // console.log('tsidDatmanApiUrl:', tsidDatmanApiUrl);
@@ -236,7 +233,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 if (ownerMapData) {
                                     loc['owner'] = ownerMapData;
                                 }
-
 
                                 // Add datman to json
                                 const tsidDatmanMapData = tsidDatmanMap.get(loc['location-id']);
@@ -295,7 +291,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             locData[apiDataKey].push(data);
 
-
                                             let lastValueKey;
                                             if (type === 'datman') {
                                                 lastValueKey = 'datman-last-value';  // Assuming 'do-last-value' is the key for dissolved oxygen last value
@@ -352,7 +347,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[minValueKey].push(minValue);
-
                                         })
 
                                         .catch(error => {
@@ -366,62 +360,63 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, 'datman');
 
                             // Additional API call for extents data
-                            const timeSeriesDataExtentsApiCall = (type) => {
+                            const timeSeriesDataExtentsApiCall = async (type) => {
                                 const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}`;
                                 // console.log('extentsApiUrl:', extentsApiUrl);
 
-                                return fetch(extentsApiUrl, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Accept': 'application/json;version=2'
-                                    }
-                                })
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        locData['extents-api-data'] = data;
-                                        locData[`extents-data`] = {}
-
-                                        // Collect TSIDs from temp, depth, and DO time series
-                                        const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
-                                        const allTids = [...datmanTids]; // Combine both arrays
-
-                                        // Iterate over all TSIDs and create extents data entries
-                                        allTids.forEach((tsid, index) => {
-                                            // console.log("tsid:", tsid);
-                                            const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
-                                            // console.log("matchingEntry:", matchingEntry);
-                                            if (matchingEntry) {
-                                                // Construct dynamic key
-                                                let _data = {
-                                                    office: matchingEntry.office,
-                                                    name: matchingEntry.name,
-                                                    earliestTime: matchingEntry.extents[0]?.['earliest-time'],
-                                                    lastUpdate: matchingEntry.extents[0]?.['last-update'],
-                                                    latestTime: matchingEntry.extents[0]?.['latest-time'],
-                                                    tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
-                                                };
-                                                // console.log({ locData })
-                                                // Determine extent key based on tsid
-                                                let extent_key;
-                                                if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) { // Example for another condition
-                                                    extent_key = 'datman';
-                                                } else {
-                                                    return; // Ignore if it doesn't match either condition
-                                                }
-                                                // locData['tsid-extens-data']['temp-water'][0]
-                                                if (!locData[`extents-data`][extent_key])
-                                                    locData[`extents-data`][extent_key] = [_data]
-                                                else
-                                                    locData[`extents-data`][extent_key].push(_data)
-
-                                            } else {
-                                                console.warn(`No matching entry found for TSID: ${tsid}`);
-                                            }
-                                        });
-                                    })
-                                    .catch(error => {
-                                        console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
+                                try {
+                                    const res = await fetch(extentsApiUrl, {
+                                        method: 'GET',
+                                        headers: {
+                                            'Accept': 'application/json;version=2'
+                                        }
                                     });
+                                    const data = await res.json();
+                                    locData['extents-api-data'] = data;
+                                    locData[`extents-data`] = {};
+
+                                    // Collect TSIDs from temp, depth, and DO time series
+                                    const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
+                                    const allTids = [...datmanTids]; // Combine both arrays
+
+
+                                    // Iterate over all TSIDs and create extents data entries
+                                    allTids.forEach((tsid, index) => {
+                                        // console.log("tsid:", tsid);
+                                        const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
+                                        // console.log("matchingEntry:", matchingEntry);
+                                        if (matchingEntry) {
+                                            // Construct dynamic key
+                                            let _data = {
+                                                office: matchingEntry.office,
+                                                name: matchingEntry.name,
+                                                earliestTime: matchingEntry.extents[0]?.['earliest-time'],
+                                                lastUpdate: matchingEntry.extents[0]?.['last-update'],
+                                                latestTime: matchingEntry.extents[0]?.['latest-time'],
+                                                tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
+                                            };
+                                            // console.log({ locData })
+                                            // Determine extent key based on tsid
+                                            let extent_key;
+                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) { // Example for another condition
+                                                extent_key = 'datman';
+                                            } else {
+                                                return; // Ignore if it doesn't match either condition
+                                            }
+                                            // locData['tsid-extens-data']['temp-water'][0]
+                                            if (!locData[`extents-data`][extent_key])
+                                                locData[`extents-data`][extent_key] = [_data];
+
+                                            else
+                                                locData[`extents-data`][extent_key].push(_data);
+
+                                        } else {
+                                            console.warn(`No matching entry found for TSID: ${tsid}`);
+                                        }
+                                    });
+                                } catch (error) {
+                                    console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
+                                }
                             };
 
                             // Combine all promises for this location
@@ -431,7 +426,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Wait for all additional data fetches to complete
                     return Promise.all(timeSeriesDataPromises);
-
                 })
                 .then(() => {
                     // Assuming this is inside a promise chain (like in a `.then()`)
@@ -478,7 +472,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
 
-
                     if (type === "status") {
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData);
@@ -512,7 +505,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
                                 container.appendChild(img);
                             }
-
                         } else {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
