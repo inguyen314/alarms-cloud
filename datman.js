@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 1;
+    let reportNumber = 4;
 
     if (reportNumber === 1) {
         // Set the category and base URL for API calls
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractDaysFromDate(new Date(), 3);
+        setLookBackHours = subtractHoursFromDate(new Date(), 2);
     }
 
     // Display the loading indicator for water quality alarm
@@ -439,8 +439,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Filter out locations with 'attribute' ending in '.1'
                         dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
                             const attribute = location['attribute'].toString();
-                            // console.log(`Checking attribute: ${attribute}`);
-                            return !attribute.endsWith('.1');
+                            if (attribute.endsWith('.1')) {
+                                // Log the location being removed
+                                console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
+                                return false; // Filter out this location
+                            }
+                            return true; // Keep the location
                         });
 
                         // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
@@ -464,13 +468,38 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // If no match, remove the location
                             if (!matchingOwnerLocation) {
-                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
                                 locations.splice(i, 1);
                             }
                         }
                     });
 
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
+
+                    // Step 3: Filter out locations where 'tsid-datman' is null
+                    combinedData.forEach(dataGroup => {
+                        // Iterate over each assigned-location in the dataGroup
+                        let locations = dataGroup['assigned-locations'];
+
+                        // Loop through the locations array in reverse to safely remove items
+                        for (let i = locations.length - 1; i >= 0; i--) {
+                            let location = locations[i];
+
+                            // console.log("tsid-datman: ", location[`tsid-datman`]);
+
+                            // Check if 'tsid-datman' is null or undefined
+                            let isLocationNull = location[`tsid-datman`] == null;
+
+                            // If tsid-datman is null, remove the location
+                            if (isLocationNull) {
+                                console.log(`Removing location with id ${location['location-id']}`);
+                                locations.splice(i, 1); // Remove the location from the array
+                            }
+                        }
+                    });
+
+                    console.log('Filtered all locations where tsid is null successfully:', combinedData);
+
 
                     if (type === "status") {
                         // Only call createTable if no valid data exists
@@ -728,11 +757,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
 
+                        // console.log("hasValidValue: ", hasValidValue);
+
                         // Log whether a valid entry was found
                         if (hasValidValue) {
                             // console.log("There are valid entries in the array.");
                         } else {
-                            // console.log("No valid entries found in the array.");
+                            // console.log("There are invalid entries found in the array.");
                         }
                     } else {
                         // console.log(`datmanTsidArray is either empty or not an array for location ${locationName}.`);
