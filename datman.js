@@ -379,41 +379,24 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             let latestTimeUTC = matchingEntry.extents[0]?.['latest-time'];
                                             let earliestTimeUTC = matchingEntry.extents[0]?.['earliest-time'];
                                     
-                                            let latestTimeCST = new Date(latestTimeUTC); // Convert latestTime to Date object
-                                            let earliestTimeCST = new Date(earliestTimeUTC); // Convert earliestTime to Date object
+                                            // Convert UTC times to Date objects
+                                            let latestTimeCST = new Date(latestTimeUTC);
+                                            let earliestTimeCST = new Date(earliestTimeUTC);
                                     
-                                            // Function to check if the given date is in Daylight Saving Time
-                                            let isDST = (date) => {
-                                                let jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
-                                                let jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-                                                return Math.min(jan, jul) !== date.getTimezoneOffset();
-                                            };
-                                    
-                                            // Adjust latestTime based on whether DST applies
-                                            if (isDST(latestTimeCST)) {
-                                                latestTimeCST.setHours(latestTimeCST.getHours() - 5); // CDT (UTC-5)
-                                            } else {
-                                                latestTimeCST.setHours(latestTimeCST.getHours() - 6); // CST (UTC-6)
-                                            }
-                                    
-                                            // Adjust earliestTime based on whether DST applies
-                                            if (isDST(earliestTimeCST)) {
-                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 5); // CDT (UTC-5)
-                                            } else {
-                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 6); // CST (UTC-6)
-                                            }
-                                    
-                                            // Helper function to format date as "MM-DD-YYYY HH:mm"
+                                            // Function to format date as "MM-DD-YYYY HH:mm"
                                             const formatDate = (date) => {
-                                                let month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-                                                let day = String(date.getDate()).padStart(2, '0');
-                                                let year = date.getFullYear();
-                                                let hours = String(date.getHours()).padStart(2, '0');
-                                                let minutes = String(date.getMinutes()).padStart(2, '0');
-                                                return `${month}-${day}-${year} ${hours}:${minutes}`;
+                                                return date.toLocaleString('en-US', {
+                                                    timeZone: 'America/Chicago', // Set the timezone to Central Time (CST/CDT)
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    hour12: false // Use 24-hour format
+                                                }).replace(',', ''); // Remove the comma from the formatted string
                                             };
                                     
-                                            // Format the adjusted times
+                                            // Format the times to CST/CDT
                                             let formattedLatestTime = formatDate(latestTimeCST);
                                             let formattedEarliestTime = formatDate(earliestTimeCST);
                                     
@@ -422,10 +405,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 office: matchingEntry.office,
                                                 name: matchingEntry.name,
                                                 earliestTime: formattedEarliestTime, // Use formatted earliestTime
-                                                earliestTimeISO: earliestTimeCST.toISOString(),
+                                                earliestTimeISO: earliestTimeCST.toISOString(), // Store original ISO format as well
                                                 lastUpdate: matchingEntry.extents[0]?.['last-update'],
                                                 latestTime: formattedLatestTime, // Use formatted latestTime
-                                                latestTimeISO: latestTimeCST.toISOString(),
+                                                latestTimeISO: latestTimeCST.toISOString(), // Store original ISO format as well
                                                 tsid: matchingEntry['timeseries-id'],
                                             };
                                     
@@ -438,15 +421,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             }
                                     
                                             // Update locData with extents-data
-                                            if (!locData[`extents-data`][extent_key])
+                                            if (!locData[`extents-data`][extent_key]) {
                                                 locData[`extents-data`][extent_key] = [_data];
-                                            else
+                                            } else {
                                                 locData[`extents-data`][extent_key].push(_data);
+                                            }
                                     
                                         } else {
                                             console.warn(`No matching entry found for TSID: ${tsid}`);
                                         }
-                                    });                                                                                                      
+                                    });                                                                       
                                 } catch (error) {
                                     console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
                                 }
@@ -570,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
                             // Only call createTable if no valid data exists
-                            const table = createTable(combinedData);
+                            const table = createTable(combinedData, type);
 
                             // Append the table to the specified container
                             const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -930,29 +914,29 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTable(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-    
+
         // Determine if we're showing all rows based on type
         const showAllRows = type === 'status';
-    
+
         data.forEach(item => {
             let shouldPrintHeader = false;
-    
+
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
                 const datmanData = location['extents-data']?.['datman'] || [];
-    
+
                 // Process each datmanEntry
                 datmanData.forEach(datmanEntry => {
                     const tsid = datmanEntry.name;
                     const earliestTime = datmanEntry.earliestTime;
                     const latestTime = datmanEntry.latestTime;
-    
+
                     // Check if 'datman-last-value' and corresponding entry exist
                     const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-    
+
                     // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
                     const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
-    
+
                     if (shouldDisplayRow) {
                         // Only print the header once if needed
                         if (!shouldPrintHeader) {
@@ -965,7 +949,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             idHeader.textContent = item.id;
                             headerRow.appendChild(idHeader);
                             table.appendChild(headerRow);
-    
+
                             // Create subheader row
                             const subHeaderRow = document.createElement('tr');
                             ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
@@ -974,16 +958,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 subHeaderRow.appendChild(td);
                             });
                             table.appendChild(subHeaderRow);
-    
+
                             shouldPrintHeader = true;
                         }
-    
+
                         // Create the link for tsid
                         const link = document.createElement('a');
                         link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
-    
+
                         // Convert the value to a number and apply toFixed(2) if it's numeric
                         let valueDisplay;
                         if (lastDatmanValue.value === 'N/A') {
@@ -992,13 +976,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const numericValue = Number(lastDatmanValue.value);
                             valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
                         }
-    
+
                         const valueSpan = document.createElement('span');
                         if (lastDatmanValue.value === 'N/A') {
                             valueSpan.classList.add('blinking-text');
                         }
                         valueSpan.textContent = valueDisplay;
-    
+
                         const createDataRow = (cells) => {
                             const dataRow = document.createElement('tr');
                             cells.forEach(cellValue => {
@@ -1012,16 +996,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             });
                             table.appendChild(dataRow);
                         };
-    
+
                         createDataRow([link, valueSpan, earliestTime, latestTime]);
                     }
                 });
             });
         });
-    
+
         return table;
     }
-      
+
     function createTableStatus(data) {
         const table = document.createElement('table');
         table.id = 'customers';
