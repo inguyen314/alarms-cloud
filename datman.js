@@ -29,7 +29,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 0);
+        setLookBackHours = subtractHoursFromDate(new Date(), 2);
+    } else if (reportNumber === 5) {
+        // Set the category and base URL for API calls
+        alarmDiv = "datman"; // stage_rev
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "Illinois";
+        setTimeseriesGroup1 = "Stage";
+        setLookBackHours = subtractHoursFromDate(new Date(), 2);
     }
 
     // Display the loading indicator for water quality alarm
@@ -57,11 +64,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const metadataMap = new Map();
+    const floodMap = new Map();
+    const lwrpMap = new Map();
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
 
     // Initialize arrays for storing promises
     const metadataPromises = [];
+    const floodPromises = [];
+    const lwrpPromises = [];
     const ownerPromises = [];
     const datmanTsidPromises = [];
 
@@ -147,6 +158,61 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             })
                                     );
 
+                                    // Fetch flood location level for each location
+                                    const levelIdFlood = loc['location-id'] + ".Stage.Inst.0.Flood";
+                                    // console.log("levelIdFlood: ", levelIdFlood);
+
+                                    const levelIdEffectiveDate = "2024-01-01T08:00:00";
+                                    // console.log("levelIdEffectiveDate: ", levelIdEffectiveDate);
+
+                                    const floodApiUrl = setBaseUrl + `levels/${levelIdFlood}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // console.log("floodApiUrl: ", floodApiUrl);
+                                    floodPromises.push(
+                                        fetch(floodApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) {
+                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                                    return null; // Skip if not found
+                                                }
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(floodData => {
+                                                if (floodData) {
+                                                    floodMap.set(loc['location-id'], floodData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                            })
+                                    );
+
+                                    // Fetch lwrp location level for each location
+                                    const levelIdLwrp = loc['location-id'] + ".Stage.Inst.0.LWRP";
+                                    // console.log("levelIdFlood: ", levelIdFlood);
+
+                                    const lwrpApiUrl = setBaseUrl + `levels/${levelIdLwrp}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // console.log("lwrpApiUrl: ", lwrpApiUrl);
+                                    lwrpPromises.push(
+                                        fetch(lwrpApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) {
+                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                                    return null; // Skip if not found
+                                                }
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(lwrpData => {
+                                                if (lwrpData) {
+                                                    lwrpMap.set(loc['location-id'], lwrpData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                            })
+                                    );
+
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
                                     // console.log("ownerApiUrl: ", ownerApiUrl);
@@ -207,6 +273,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
                 .then(() => Promise.all(metadataPromises))
+                .then(() => Promise.all(floodPromises))
+                .then(() => Promise.all(lwrpPromises))
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
                 .then(() => {
@@ -220,6 +288,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 if (metadataMapData) {
                                     loc['metadata'] = metadataMapData;
                                 }
+
+                                // Add flood to json
+                                const floodMapData = floodMap.get(loc['location-id']);
+                                loc['flood'] = floodMapData !== undefined ? floodMapData : null;
+
+
+                                // Add lwrp to json
+                                const lwrpMapData = lwrpMap.get(loc['location-id']);
+                                loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
+
 
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
@@ -378,11 +456,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             // Convert times from UTC
                                             let latestTimeUTC = matchingEntry.extents[0]?.['latest-time'];
                                             let earliestTimeUTC = matchingEntry.extents[0]?.['earliest-time'];
-                                    
+
                                             // Convert UTC times to Date objects
                                             let latestTimeCST = new Date(latestTimeUTC);
                                             let earliestTimeCST = new Date(earliestTimeUTC);
-                                    
+
                                             // Function to format date as "MM-DD-YYYY HH:mm"
                                             const formatDate = (date) => {
                                                 return date.toLocaleString('en-US', {
@@ -395,11 +473,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     hour12: false // Use 24-hour format
                                                 }).replace(',', ''); // Remove the comma from the formatted string
                                             };
-                                    
+
                                             // Format the times to CST/CDT
                                             let formattedLatestTime = formatDate(latestTimeCST);
                                             let formattedEarliestTime = formatDate(earliestTimeCST);
-                                    
+
                                             // Construct the _data object with formatted times
                                             let _data = {
                                                 office: matchingEntry.office,
@@ -411,7 +489,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 latestTimeISO: latestTimeCST.toISOString(), // Store original ISO format as well
                                                 tsid: matchingEntry['timeseries-id'],
                                             };
-                                    
+
                                             // Determine extent key based on tsid
                                             let extent_key;
                                             if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) {
@@ -419,18 +497,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             } else {
                                                 return; // Ignore if it doesn't match the condition
                                             }
-                                    
+
                                             // Update locData with extents-data
                                             if (!locData[`extents-data`][extent_key]) {
                                                 locData[`extents-data`][extent_key] = [_data];
                                             } else {
                                                 locData[`extents-data`][extent_key].push(_data);
                                             }
-                                    
+
                                         } else {
                                             console.warn(`No matching entry found for TSID: ${tsid}`);
                                         }
-                                    });                                                                       
+                                    });
                                 } catch (error) {
                                     console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
                                 }
@@ -519,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     if (type === "status") {
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type);
+                        const table = createTable(combinedData, type, reportNumber);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -554,7 +632,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
                             // Only call createTable if no valid data exists
-                            const table = createTable(combinedData, type);
+                            const table = createTable(combinedData, type, reportNumber);
 
                             // Append the table to the specified container
                             const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -911,7 +989,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data, type) {
+    function createTable(data, type, reportNumber) {
         const table = document.createElement('table');
         table.id = 'customers';
 
