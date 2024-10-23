@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 2);
+        setLookBackHours = subtractHoursFromDate(new Date(), 0);
     }
 
     // Display the loading indicator for water quality alarm
@@ -379,41 +379,81 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
                                     const allTids = [...datmanTids]; // Combine both arrays
 
-
-                                    // Iterate over all TSIDs and create extents data entries
                                     allTids.forEach((tsid, index) => {
-                                        // console.log("tsid:", tsid);
                                         const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
-                                        // console.log("matchingEntry:", matchingEntry);
                                         if (matchingEntry) {
-                                            // Construct dynamic key
+                                            // Convert times from UTC
+                                            let latestTimeUTC = matchingEntry.extents[0]?.['latest-time'];
+                                            let earliestTimeUTC = matchingEntry.extents[0]?.['earliest-time'];
+                                    
+                                            let latestTimeCST = new Date(latestTimeUTC); // Convert latestTime to Date object
+                                            let earliestTimeCST = new Date(earliestTimeUTC); // Convert earliestTime to Date object
+                                    
+                                            // Function to check if the given date is in Daylight Saving Time
+                                            let isDST = (date) => {
+                                                let jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+                                                let jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+                                                return Math.min(jan, jul) !== date.getTimezoneOffset();
+                                            };
+                                    
+                                            // Adjust latestTime based on whether DST applies
+                                            if (isDST(latestTimeCST)) {
+                                                latestTimeCST.setHours(latestTimeCST.getHours() - 5); // CDT (UTC-5)
+                                            } else {
+                                                latestTimeCST.setHours(latestTimeCST.getHours() - 6); // CST (UTC-6)
+                                            }
+                                    
+                                            // Adjust earliestTime based on whether DST applies
+                                            if (isDST(earliestTimeCST)) {
+                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 5); // CDT (UTC-5)
+                                            } else {
+                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 6); // CST (UTC-6)
+                                            }
+                                    
+                                            // Helper function to format date as "MM-DD-YYYY HH:mm"
+                                            const formatDate = (date) => {
+                                                let month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+                                                let day = String(date.getDate()).padStart(2, '0');
+                                                let year = date.getFullYear();
+                                                let hours = String(date.getHours()).padStart(2, '0');
+                                                let minutes = String(date.getMinutes()).padStart(2, '0');
+                                                return `${month}-${day}-${year} ${hours}:${minutes}`;
+                                            };
+                                    
+                                            // Format the adjusted times
+                                            let formattedLatestTime = formatDate(latestTimeCST);
+                                            let formattedEarliestTime = formatDate(earliestTimeCST);
+                                    
+                                            // Construct the _data object with formatted times
                                             let _data = {
                                                 office: matchingEntry.office,
                                                 name: matchingEntry.name,
-                                                earliestTime: matchingEntry.extents[0]?.['earliest-time'],
+                                                earliestTime: formattedEarliestTime, // Use formatted earliestTime
+                                                earliestTimeISO: earliestTimeCST.toISOString(),
                                                 lastUpdate: matchingEntry.extents[0]?.['last-update'],
-                                                latestTime: matchingEntry.extents[0]?.['latest-time'],
-                                                tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
+                                                latestTime: formattedLatestTime, // Use formatted latestTime
+                                                latestTimeISO: latestTimeCST.toISOString(),
+                                                tsid: matchingEntry['timeseries-id'],
                                             };
-                                            // console.log({ locData })
+                                    
                                             // Determine extent key based on tsid
                                             let extent_key;
-                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) { // Example for another condition
+                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) {
                                                 extent_key = 'datman';
                                             } else {
-                                                return; // Ignore if it doesn't match either condition
+                                                return; // Ignore if it doesn't match the condition
                                             }
-                                            // locData['tsid-extens-data']['temp-water'][0]
+                                    
+                                            // Update locData with extents-data
                                             if (!locData[`extents-data`][extent_key])
                                                 locData[`extents-data`][extent_key] = [_data];
-
                                             else
                                                 locData[`extents-data`][extent_key].push(_data);
-
+                                    
                                         } else {
                                             console.warn(`No matching entry found for TSID: ${tsid}`);
                                         }
-                                    });
+                                    });                                                                                                      
                                 } catch (error) {
                                     console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
                                 }
