@@ -533,10 +533,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
-
                     if (type === "status") {
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData);
+                        const table = createTable(combinedData, type);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -928,28 +927,33 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data) {
+    function createTable(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-
+    
+        // Determine if we're showing all rows based on type
+        const showAllRows = type === 'status';
+    
         data.forEach(item => {
             let shouldPrintHeader = false;
-
+    
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
                 const datmanData = location['extents-data']?.['datman'] || [];
-
-                // Check if any datmanEntry has lastDatmanValue as 'N/A'
+    
+                // Process each datmanEntry
                 datmanData.forEach(datmanEntry => {
                     const tsid = datmanEntry.name;
                     const earliestTime = datmanEntry.earliestTime;
                     const latestTime = datmanEntry.latestTime;
-
+    
                     // Check if 'datman-last-value' and corresponding entry exist
                     const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-
-                    // Safely check lastDatmanValue and its properties
-                    if (lastDatmanValue && lastDatmanValue.value === 'N/A') {
+    
+                    // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
+                    const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
+    
+                    if (shouldDisplayRow) {
                         // Only print the header once if needed
                         if (!shouldPrintHeader) {
                             // Create header row for the item's ID
@@ -961,7 +965,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             idHeader.textContent = item.id;
                             headerRow.appendChild(idHeader);
                             table.appendChild(headerRow);
-
+    
                             // Create subheader row
                             const subHeaderRow = document.createElement('tr');
                             ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
@@ -970,22 +974,31 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 subHeaderRow.appendChild(td);
                             });
                             table.appendChild(subHeaderRow);
-
+    
                             shouldPrintHeader = true;
                         }
-
+    
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        const cda = ''; // You may need to assign the appropriate value for 'cda'
                         link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
-
-                        // Create the row for 'N/A' value
+    
+                        // Convert the value to a number and apply toFixed(2) if it's numeric
+                        let valueDisplay;
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueDisplay = 'N/A';
+                        } else {
+                            const numericValue = Number(lastDatmanValue.value);
+                            valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
+                        }
+    
                         const valueSpan = document.createElement('span');
-                        valueSpan.classList.add('blinking-text');
-                        valueSpan.textContent = 'N/A';
-
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueSpan.classList.add('blinking-text');
+                        }
+                        valueSpan.textContent = valueDisplay;
+    
                         const createDataRow = (cells) => {
                             const dataRow = document.createElement('tr');
                             cells.forEach(cellValue => {
@@ -999,16 +1012,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                             });
                             table.appendChild(dataRow);
                         };
-
+    
                         createDataRow([link, valueSpan, earliestTime, latestTime]);
                     }
                 });
             });
         });
-
+    
         return table;
     }
-
+      
     function createTableStatus(data) {
         const table = document.createElement('table');
         table.id = 'customers';
