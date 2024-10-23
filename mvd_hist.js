@@ -2,48 +2,51 @@ document.addEventListener('DOMContentLoaded', async function () {
     const currentDateTime = new Date();
 
     let setLocationCategory = null;
-    let locationGroupOwner = null;
-    let timeseriesGroup1 = null;
-    let lookBackHours = null;
+    let setLocationGroupOwner = null;
+    let setTimeseriesGroup1 = null;
+    let setLookBackHours = null;
     let alarmDiv = null;
 
-    if ("datman" === "datman") {
-        // Set the category and base URL for API calls
-        // alarmDiv = "datman";
-        // setLocationCategory = "Basins";
-        // locationGroupOwner = "Datman";
-        // timeseriesGroup1 = "Datman";
-        // lookBackHours = subtractDaysFromDate(new Date(), 90);
-    }
+    let reportNumber = 2;
 
-    if ("mvd-hist" === "mvd-hist") {
+    if (reportNumber === 1) {
+        // Set the category and base URL for API calls
+        alarmDiv = "datman";
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "Datman";
+        setTimeseriesGroup1 = "Datman";
+        setLookBackHours = subtractDaysFromDate(new Date(), 90);
+    } else if (reportNumber === 2) {
         // Set the category and base URL for API calls
         alarmDiv = "mvd_hist"; // mvd_hist
         setLocationCategory = "Mvd-Hist";
-        locationGroupOwner = "MVD";
-        timeseriesGroup1 = "Mvd-Hist";
-        lookBackHours = subtractDaysFromDate(new Date(), 3);
-    }
-
-    if ("water-quality" === "water-quality") {
+        setLocationGroupOwner = "MVD";
+        setTimeseriesGroup1 = "Mvd-Hist";
+        setLookBackHours = subtractDaysFromDate(new Date(), 5);
+    } else if (reportNumber === 3) {
         // Set the category and base URL for API calls
-        // alarmDiv = "datman";
-        // setLocationCategory = "Alarm-Water-Quality";
-        // locationGroupOwner = "Temp-Water";
-        // timeseriesGroup1 = "Temp-Water";
-        // lookBackHours = subtractDaysFromDate(new Date(), 3);
+        alarmDiv = "datman"; // water_quality
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Conc-DO";
+        setLookBackHours = subtractDaysFromDate(new Date(), 3);
+    } else if (reportNumber === 4) {
+        // Set the category and base URL for API calls
+        alarmDiv = "datman"; // stage_rev
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Stage";
+        setLookBackHours = subtractHoursFromDate(new Date(), 0);
     }
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_alarm_${alarmDiv}`);
     loadingIndicator.style.display = 'block'; // Show the loading indicator
 
-
-
     console.log("setLocationCategory: ", setLocationCategory);
-    console.log("timeseriesGroup1: ", timeseriesGroup1);
-    console.log("locationGroupOwner: ", locationGroupOwner);
-    console.log("lookBackHours: ", lookBackHours);
+    console.log("setLocationGroupOwner: ", setLocationGroupOwner);
+    console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
+    console.log("setLookBackHours: ", setLookBackHours);
 
     let setBaseUrl = null;
     if (cda === "internal") {
@@ -152,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     );
 
                                     // Fetch owner for each location
-                                    let ownerApiUrl = setBaseUrl + `location/group/${locationGroupOwner}?office=${office}&category-id=${office}`;
+                                    let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
                                     // console.log("ownerApiUrl: ", ownerApiUrl);
                                     if (ownerApiUrl) {
                                         ownerPromises.push(
@@ -179,9 +182,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         );
                                     }
 
-
                                     // Fetch datman TSID data
-                                    const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${timeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
+                                    const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
                                     // console.log('tsidDatmanApiUrl:', tsidDatmanApiUrl);
                                     datmanTsidPromises.push(
                                         fetch(tsidDatmanApiUrl)
@@ -232,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     loc['owner'] = ownerMapData;
                                 }
 
-
                                 // Add datman to json
                                 const tsidDatmanMapData = tsidDatmanMap.get(loc['location-id']);
                                 if (tsidDatmanMapData) {
@@ -263,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const timeSeriesDataFetchPromises = (timeSeries, type) => {
                                 return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
-                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${lookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${setLookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
                                     // console.log('timeSeriesDataApiUrl:', timeSeriesDataApiUrl);
 
                                     return fetch(timeSeriesDataApiUrl, {
@@ -289,7 +290,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             }
 
                                             locData[apiDataKey].push(data);
-
 
                                             let lastValueKey;
                                             if (type === 'datman') {
@@ -347,7 +347,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[minValueKey].push(minValue);
-
                                         })
 
                                         .catch(error => {
@@ -361,62 +360,103 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, 'datman');
 
                             // Additional API call for extents data
-                            const timeSeriesDataExtentsApiCall = (type) => {
+                            const timeSeriesDataExtentsApiCall = async (type) => {
                                 const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}`;
                                 // console.log('extentsApiUrl:', extentsApiUrl);
 
-                                return fetch(extentsApiUrl, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Accept': 'application/json;version=2'
-                                    }
-                                })
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        locData['extents-api-data'] = data;
-                                        locData[`extents-data`] = {}
-
-                                        // Collect TSIDs from temp, depth, and DO time series
-                                        const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
-                                        const allTids = [...datmanTids]; // Combine both arrays
-
-                                        // Iterate over all TSIDs and create extents data entries
-                                        allTids.forEach((tsid, index) => {
-                                            // console.log("tsid:", tsid);
-                                            const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
-                                            // console.log("matchingEntry:", matchingEntry);
-                                            if (matchingEntry) {
-                                                // Construct dynamic key
-                                                let _data = {
-                                                    office: matchingEntry.office,
-                                                    name: matchingEntry.name,
-                                                    earliestTime: matchingEntry.extents[0]?.['earliest-time'],
-                                                    lastUpdate: matchingEntry.extents[0]?.['last-update'],
-                                                    latestTime: matchingEntry.extents[0]?.['latest-time'],
-                                                    tsid: matchingEntry['timeseries-id'], // Include TSID for clarity
-                                                };
-                                                // console.log({ locData })
-                                                // Determine extent key based on tsid
-                                                let extent_key;
-                                                if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) { // Example for another condition
-                                                    extent_key = 'datman';
-                                                } else {
-                                                    return; // Ignore if it doesn't match either condition
-                                                }
-                                                // locData['tsid-extens-data']['temp-water'][0]
-                                                if (!locData[`extents-data`][extent_key])
-                                                    locData[`extents-data`][extent_key] = [_data]
-                                                else
-                                                    locData[`extents-data`][extent_key].push(_data)
-
-                                            } else {
-                                                console.warn(`No matching entry found for TSID: ${tsid}`);
-                                            }
-                                        });
-                                    })
-                                    .catch(error => {
-                                        console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
+                                try {
+                                    const res = await fetch(extentsApiUrl, {
+                                        method: 'GET',
+                                        headers: {
+                                            'Accept': 'application/json;version=2'
+                                        }
                                     });
+                                    const data = await res.json();
+                                    locData['extents-api-data'] = data;
+                                    locData[`extents-data`] = {};
+
+                                    // Collect TSIDs from temp, depth, and DO time series
+                                    const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
+                                    const allTids = [...datmanTids]; // Combine both arrays
+
+                                    allTids.forEach((tsid, index) => {
+                                        const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
+                                        if (matchingEntry) {
+                                            // Convert times from UTC
+                                            let latestTimeUTC = matchingEntry.extents[0]?.['latest-time'];
+                                            let earliestTimeUTC = matchingEntry.extents[0]?.['earliest-time'];
+                                    
+                                            let latestTimeCST = new Date(latestTimeUTC); // Convert latestTime to Date object
+                                            let earliestTimeCST = new Date(earliestTimeUTC); // Convert earliestTime to Date object
+                                    
+                                            // Function to check if the given date is in Daylight Saving Time
+                                            let isDST = (date) => {
+                                                let jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+                                                let jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+                                                return Math.min(jan, jul) !== date.getTimezoneOffset();
+                                            };
+                                    
+                                            // Adjust latestTime based on whether DST applies
+                                            if (isDST(latestTimeCST)) {
+                                                latestTimeCST.setHours(latestTimeCST.getHours() - 5); // CDT (UTC-5)
+                                            } else {
+                                                latestTimeCST.setHours(latestTimeCST.getHours() - 6); // CST (UTC-6)
+                                            }
+                                    
+                                            // Adjust earliestTime based on whether DST applies
+                                            if (isDST(earliestTimeCST)) {
+                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 5); // CDT (UTC-5)
+                                            } else {
+                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 6); // CST (UTC-6)
+                                            }
+                                    
+                                            // Helper function to format date as "MM-DD-YYYY HH:mm"
+                                            const formatDate = (date) => {
+                                                let month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+                                                let day = String(date.getDate()).padStart(2, '0');
+                                                let year = date.getFullYear();
+                                                let hours = String(date.getHours()).padStart(2, '0');
+                                                let minutes = String(date.getMinutes()).padStart(2, '0');
+                                                return `${month}-${day}-${year} ${hours}:${minutes}`;
+                                            };
+                                    
+                                            // Format the adjusted times
+                                            let formattedLatestTime = formatDate(latestTimeCST);
+                                            let formattedEarliestTime = formatDate(earliestTimeCST);
+                                    
+                                            // Construct the _data object with formatted times
+                                            let _data = {
+                                                office: matchingEntry.office,
+                                                name: matchingEntry.name,
+                                                earliestTime: formattedEarliestTime, // Use formatted earliestTime
+                                                earliestTimeISO: earliestTimeCST.toISOString(),
+                                                lastUpdate: matchingEntry.extents[0]?.['last-update'],
+                                                latestTime: formattedLatestTime, // Use formatted latestTime
+                                                latestTimeISO: latestTimeCST.toISOString(),
+                                                tsid: matchingEntry['timeseries-id'],
+                                            };
+                                    
+                                            // Determine extent key based on tsid
+                                            let extent_key;
+                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) {
+                                                extent_key = 'datman';
+                                            } else {
+                                                return; // Ignore if it doesn't match the condition
+                                            }
+                                    
+                                            // Update locData with extents-data
+                                            if (!locData[`extents-data`][extent_key])
+                                                locData[`extents-data`][extent_key] = [_data];
+                                            else
+                                                locData[`extents-data`][extent_key].push(_data);
+                                    
+                                        } else {
+                                            console.warn(`No matching entry found for TSID: ${tsid}`);
+                                        }
+                                    });                                                                                                      
+                                } catch (error) {
+                                    console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
+                                }
                             };
 
                             // Combine all promises for this location
@@ -426,7 +466,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Wait for all additional data fetches to complete
                     return Promise.all(timeSeriesDataPromises);
-
                 })
                 .then(() => {
                     // Assuming this is inside a promise chain (like in a `.then()`)
@@ -440,8 +479,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Filter out locations with 'attribute' ending in '.1'
                         dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
                             const attribute = location['attribute'].toString();
-                            // console.log(`Checking attribute: ${attribute}`);
-                            return !attribute.endsWith('.1');
+                            if (attribute.endsWith('.1')) {
+                                // Log the location being removed
+                                console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
+                                return false; // Filter out this location
+                            }
+                            return true; // Keep the location
                         });
 
                         // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
@@ -465,13 +508,37 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // If no match, remove the location
                             if (!matchingOwnerLocation) {
-                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
                                 locations.splice(i, 1);
                             }
                         }
                     });
 
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
+
+                    // Step 3: Filter out locations where 'tsid-datman' is null
+                    combinedData.forEach(dataGroup => {
+                        // Iterate over each assigned-location in the dataGroup
+                        let locations = dataGroup['assigned-locations'];
+
+                        // Loop through the locations array in reverse to safely remove items
+                        for (let i = locations.length - 1; i >= 0; i--) {
+                            let location = locations[i];
+
+                            // console.log("tsid-datman: ", location[`tsid-datman`]);
+
+                            // Check if 'tsid-datman' is null or undefined
+                            let isLocationNull = location[`tsid-datman`] == null;
+
+                            // If tsid-datman is null, remove the location
+                            if (isLocationNull) {
+                                console.log(`Removing location with id ${location['location-id']}`);
+                                locations.splice(i, 1); // Remove the location from the array
+                            }
+                        }
+                    });
+
+                    console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
 
                     if (type === "status") {
@@ -507,7 +574,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
                                 container.appendChild(img);
                             }
-
                         } else {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
@@ -731,11 +797,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
 
+                        // console.log("hasValidValue: ", hasValidValue);
+
                         // Log whether a valid entry was found
                         if (hasValidValue) {
                             // console.log("There are valid entries in the array.");
                         } else {
-                            // console.log("No valid entries found in the array.");
+                            // console.log("There are invalid entries found in the array.");
                         }
                     } else {
                         // console.log(`datmanTsidArray is either empty or not an array for location ${locationName}.`);

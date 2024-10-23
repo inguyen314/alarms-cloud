@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 1;
+    let reportNumber = 4;
 
     if (reportNumber === 1) {
         // Set the category and base URL for API calls
@@ -23,13 +23,20 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationGroupOwner = "MVD";
         setTimeseriesGroup1 = "Mvd-Hist";
         setLookBackHours = subtractDaysFromDate(new Date(), 5);
+    } else if (reportNumber === 3) {
+        // Set the category and base URL for API calls
+        alarmDiv = "datman"; // water_quality
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Conc-DO";
+        setLookBackHours = subtractDaysFromDate(new Date(), 3);
     } else if (reportNumber === 4) {
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
+        alarmDiv = "stage_rev"; // stage_rev
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 0);
+        setLookBackHours = subtractHoursFromDate(new Date(), 2);
     }
 
     // Display the loading indicator for water quality alarm
