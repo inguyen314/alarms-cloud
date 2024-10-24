@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        // setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         console.log("setBaseUrl: ", setBaseUrl);
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
@@ -67,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             return response.json();
                         })
                         .then(firstData => {
-                            console.log('firstData:', firstData);
+                            // console.log('firstData:', firstData);
 
                             if (!firstData) {
                                 console.log(`No data for basin: ${basin}`);
@@ -95,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     return response.json();
                                                 })
                                                 .then(netmissTsidData => {
-                                                    console.log('netmissTsidData:', netmissTsidData);
+                                                    // console.log('netmissTsidData:', netmissTsidData);
 
                                                     // Extract the dynamic part from time-series-category
                                                     let dynamicId = netmissTsidData['time-series-category']['id'];
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                     netmissTsidData['assigned-time-series'].push(newAssignedTimeSeries);
 
                                                     // Logging the updated object to verify the change
-                                                    console.log(netmissTsidData);
+                                                    // console.log("netmissTsidData: ", netmissTsidData);
 
                                                     if (netmissTsidData) {
                                                         netmissTsidMap.set(loc['location-id'], netmissTsidData);
@@ -171,7 +172,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
                                 const netmissTsidMapData = netmissTsidMap.get(loc['location-id']);
-                                console.log('netmissTsidMapData:', netmissTsidMapData);
+                                // console.log('netmissTsidMapData:', netmissTsidMapData);
+
                                 reorderByAttribute(netmissTsidMapData);
                                 if (netmissTsidMapData) {
                                     loc['tsid-netmiss'] = netmissTsidMapData;
@@ -223,9 +225,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 }).then(res => res.json())
                             ])
                                 .then(([stageData, netmissData, nwsData]) => {
-                                    console.log('stageData:', stageData);
-                                    console.log('netmissData:', netmissData);
-                                    console.log('nwsData:', nwsData);
+                                    // console.log('stageData:', stageData);
+                                    // console.log('netmissData:', netmissData);
+                                    // console.log('nwsData:', nwsData);
 
                                     if (stageData.values) {
                                         stageData.values.forEach(entry => {
@@ -252,11 +254,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                     // Execute the functions to find values and create the table
                                     const stageValuesAtPreferredTimes = findValuesAtTimes(stageData);
-                                    console.log('stageValuesAtPreferredTimes:', stageValuesAtPreferredTimes);
+                                    // console.log('stageValuesAtPreferredTimes:', stageValuesAtPreferredTimes);
                                     const netmissValuesAtPreferredTimes = findValuesAtTimes(netmissData);
-                                    console.log('netmissValuesAtPreferredTimes:', netmissValuesAtPreferredTimes);
+                                    // console.log('netmissValuesAtPreferredTimes:', netmissValuesAtPreferredTimes);
                                     const nwsValuesAtPreferredTimes = findValuesAtTimes(nwsData);
-                                    console.log('nwsValuesAtPreferredTimes:', nwsValuesAtPreferredTimes);
+                                    // console.log('nwsValuesAtPreferredTimes:', nwsValuesAtPreferredTimes);
 
                                     locData['stageDataPreferredTimes'] = stageValuesAtPreferredTimes;
                                     locData['netmissDataPreferredTimes'] = netmissValuesAtPreferredTimes;
@@ -469,6 +471,3 @@ document.addEventListener('DOMContentLoaded', async function () {
         return table;
     }
 });
-
-
-

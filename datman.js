@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let reportNumber = 1;
 
     if (reportNumber === 1) {
+        console.log("********************* Setup to Run Datman Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "datman";
         setLocationCategory = "Basins";
@@ -17,24 +18,19 @@ document.addEventListener('DOMContentLoaded', async function () {
         setTimeseriesGroup1 = "Datman";
         setLookBackHours = subtractDaysFromDate(new Date(), 90);
     } else if (reportNumber === 2) {
+        console.log("********************* Setup to Run Mvd Hist Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "datman"; // mvd_hist
-        setLocationCategory = "Mvd-Hist";
+        setLocationCategory = "Mvd-Hist"; // Not able to use 'Bains' because these are division gages, not just in Saint Louis District
         setLocationGroupOwner = "MVD";
         setTimeseriesGroup1 = "Mvd-Hist";
         setLookBackHours = subtractDaysFromDate(new Date(), 5);
-    } else if (reportNumber === 4) {
+    } else if (reportNumber === 3) {
+        console.log("********************* Setup to Run Stage Rev Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "datman"; // stage_rev
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 2);
-    } else if (reportNumber === 5) {
-        // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "Illinois";
         setTimeseriesGroup1 = "Stage";
         setLookBackHours = subtractHoursFromDate(new Date(), 2);
     }
@@ -135,83 +131,89 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 getBasin['assigned-locations'].forEach(loc => {
                                     // console.log(loc['location-id']);
 
-                                    // Fetch metadata for each location
-                                    const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
-                                    // console.log("locApiUrl: ", locApiUrl);
-                                    metadataPromises.push(
-                                        fetch(locApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) {
-                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                                    return null; // Skip if not found
-                                                }
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(locData => {
-                                                if (locData) {
-                                                    metadataMap.set(loc['location-id'], locData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                            })
-                                    );
+                                    // // Fetch metadata for each location
+                                    // const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
+                                    // // console.log("locApiUrl: ", locApiUrl);
+                                    // metadataPromises.push(
+                                    //     fetch(locApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(locData => {
+                                    //             if (locData) {
+                                    //                 metadataMap.set(loc['location-id'], locData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
 
-                                    // Fetch flood location level for each location
-                                    const levelIdFlood = loc['location-id'] + ".Stage.Inst.0.Flood";
-                                    // console.log("levelIdFlood: ", levelIdFlood);
 
-                                    const levelIdEffectiveDate = "2024-01-01T08:00:00";
-                                    // console.log("levelIdEffectiveDate: ", levelIdEffectiveDate);
 
-                                    const floodApiUrl = setBaseUrl + `levels/${levelIdFlood}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
-                                    // console.log("floodApiUrl: ", floodApiUrl);
-                                    floodPromises.push(
-                                        fetch(floodApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) {
-                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                                    return null; // Skip if not found
-                                                }
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(floodData => {
-                                                if (floodData) {
-                                                    floodMap.set(loc['location-id'], floodData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                            })
-                                    );
+                                    // // Fetch flood location level for each location
+                                    // const levelIdFlood = loc['location-id'] + ".Stage.Inst.0.Flood";
+                                    // // console.log("levelIdFlood: ", levelIdFlood);
 
-                                    // Fetch lwrp location level for each location
-                                    const levelIdLwrp = loc['location-id'] + ".Stage.Inst.0.LWRP";
-                                    // console.log("levelIdFlood: ", levelIdFlood);
+                                    // const levelIdEffectiveDate = "2024-01-01T08:00:00";
+                                    // // console.log("levelIdEffectiveDate: ", levelIdEffectiveDate);
 
-                                    const lwrpApiUrl = setBaseUrl + `levels/${levelIdLwrp}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
-                                    // console.log("lwrpApiUrl: ", lwrpApiUrl);
-                                    lwrpPromises.push(
-                                        fetch(lwrpApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) {
-                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                                    return null; // Skip if not found
-                                                }
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(lwrpData => {
-                                                if (lwrpData) {
-                                                    lwrpMap.set(loc['location-id'], lwrpData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                            })
-                                    );
+                                    // const floodApiUrl = setBaseUrl + `levels/${levelIdFlood}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // // console.log("floodApiUrl: ", floodApiUrl);
+                                    // floodPromises.push(
+                                    //     fetch(floodApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(floodData => {
+                                    //             if (floodData) {
+                                    //                 floodMap.set(loc['location-id'], floodData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
+
+
+
+                                    // // Fetch lwrp location level for each location
+                                    // const levelIdLwrp = loc['location-id'] + ".Stage.Inst.0.LWRP";
+                                    // // console.log("levelIdFlood: ", levelIdFlood);
+
+                                    // const lwrpApiUrl = setBaseUrl + `levels/${levelIdLwrp}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // // console.log("lwrpApiUrl: ", lwrpApiUrl);
+                                    // lwrpPromises.push(
+                                    //     fetch(lwrpApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(lwrpData => {
+                                    //             if (lwrpData) {
+                                    //                 lwrpMap.set(loc['location-id'], lwrpData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
+
+
 
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
@@ -272,9 +274,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
-                .then(() => Promise.all(metadataPromises))
-                .then(() => Promise.all(floodPromises))
-                .then(() => Promise.all(lwrpPromises))
+                // .then(() => Promise.all(metadataPromises))
+                // .then(() => Promise.all(floodPromises))
+                // .then(() => Promise.all(lwrpPromises))
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
                 .then(() => {
@@ -283,20 +285,21 @@ document.addEventListener('DOMContentLoaded', async function () {
                             basinData['assigned-locations'].forEach(loc => {
                                 // Add metadata, TSID, and last-value data to the location object
 
-                                // Add metadata to json
-                                const metadataMapData = metadataMap.get(loc['location-id']);
-                                if (metadataMapData) {
-                                    loc['metadata'] = metadataMapData;
-                                }
-
-                                // Add flood to json
-                                const floodMapData = floodMap.get(loc['location-id']);
-                                loc['flood'] = floodMapData !== undefined ? floodMapData : null;
+                                // // Add metadata to json
+                                // const metadataMapData = metadataMap.get(loc['location-id']);
+                                // if (metadataMapData) {
+                                //     loc['metadata'] = metadataMapData;
+                                // }
 
 
-                                // Add lwrp to json
-                                const lwrpMapData = lwrpMap.get(loc['location-id']);
-                                loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
+                                // // Add flood to json
+                                // const floodMapData = floodMap.get(loc['location-id']);
+                                // loc['flood'] = floodMapData !== undefined ? floodMapData : null;
+
+
+                                // // Add lwrp to json
+                                // const lwrpMapData = lwrpMap.get(loc['location-id']);
+                                // loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
 
 
                                 // Add owner to json
@@ -321,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         }
                     });
 
-                    // console.log('combinedData:', combinedData);
+                    console.log('combinedData:', combinedData);
 
                     const timeSeriesDataPromises = [];
 

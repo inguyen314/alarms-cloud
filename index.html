@@ -5,7 +5,6 @@
     // Create a URL object with the current page URL
     const urlParams = new URLSearchParams(window.location.search);
 
-    const param5Value = urlParams.get('office');
     var office = urlParams.get('office')|| 'MVS';
     console.log('office: ', office);
 
@@ -21,21 +20,14 @@
     console.log("typeDefault: ", typeDefault);
 
     // Get the value of a specific parameter
-    const param2Value = urlParams.get('cda');
     var cda = urlParams.get('cda') || cdaDefault;
     console.log('cda: ', cda);
 
-    const param4Value = urlParams.get('type');
     var type = urlParams.get('type') || typeDefault;
     console.log('type: ', type);
 
-    const param1Value = urlParams.get('basin');
     var basin = urlParams.get('basin') || 'Mississippi';
     console.log('basin: ', basin);
-
-    const param3Value = urlParams.get('gage');
-    var gage = urlParams.get('gage');
-    console.log('gage: ', gage);
 </script>
 <head>
     <meta charset="UTF-8">

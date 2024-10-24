@@ -7,9 +7,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 4;
+    let reportNumber = 3;
 
     if (reportNumber === 1) {
+        console.log("********************* Setup to Run Datman Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "datman";
         setLocationCategory = "Basins";
@@ -17,20 +18,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         setTimeseriesGroup1 = "Datman";
         setLookBackHours = subtractDaysFromDate(new Date(), 90);
     } else if (reportNumber === 2) {
+        console.log("********************* Setup to Run Mvd Hist Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "datman"; // mvd_hist
-        setLocationCategory = "Mvd-Hist";
+        setLocationCategory = "Mvd-Hist"; // Not able to use 'Bains' because these are division gages, not just in Saint Louis District
         setLocationGroupOwner = "MVD";
         setTimeseriesGroup1 = "Mvd-Hist";
         setLookBackHours = subtractDaysFromDate(new Date(), 5);
     } else if (reportNumber === 3) {
-        // Set the category and base URL for API calls
-        alarmDiv = "datman"; // water_quality
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Conc-DO";
-        setLookBackHours = subtractDaysFromDate(new Date(), 3);
-    } else if (reportNumber === 4) {
+        console.log("********************* Setup to Run Stage Rev Alarm *********************");
         // Set the category and base URL for API calls
         alarmDiv = "stage_rev"; // stage_rev
         setLocationCategory = "Basins";
@@ -64,11 +60,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const metadataMap = new Map();
+    const floodMap = new Map();
+    const lwrpMap = new Map();
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
 
     // Initialize arrays for storing promises
     const metadataPromises = [];
+    const floodPromises = [];
+    const lwrpPromises = [];
     const ownerPromises = [];
     const datmanTsidPromises = [];
 
@@ -131,28 +131,89 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 getBasin['assigned-locations'].forEach(loc => {
                                     // console.log(loc['location-id']);
 
-                                    // Fetch metadata for each location
-                                    const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
-                                    // console.log("locApiUrl: ", locApiUrl);
-                                    metadataPromises.push(
-                                        fetch(locApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) {
-                                                    console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                                    return null; // Skip if not found
-                                                }
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(locData => {
-                                                if (locData) {
-                                                    metadataMap.set(loc['location-id'], locData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                            })
-                                    );
+                                    // // Fetch metadata for each location
+                                    // const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
+                                    // // console.log("locApiUrl: ", locApiUrl);
+                                    // metadataPromises.push(
+                                    //     fetch(locApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(locData => {
+                                    //             if (locData) {
+                                    //                 metadataMap.set(loc['location-id'], locData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
+
+
+
+                                    // // Fetch flood location level for each location
+                                    // const levelIdFlood = loc['location-id'] + ".Stage.Inst.0.Flood";
+                                    // // console.log("levelIdFlood: ", levelIdFlood);
+
+                                    // const levelIdEffectiveDate = "2024-01-01T08:00:00";
+                                    // // console.log("levelIdEffectiveDate: ", levelIdEffectiveDate);
+
+                                    // const floodApiUrl = setBaseUrl + `levels/${levelIdFlood}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // // console.log("floodApiUrl: ", floodApiUrl);
+                                    // floodPromises.push(
+                                    //     fetch(floodApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(floodData => {
+                                    //             if (floodData) {
+                                    //                 floodMap.set(loc['location-id'], floodData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
+
+
+
+                                    // // Fetch lwrp location level for each location
+                                    // const levelIdLwrp = loc['location-id'] + ".Stage.Inst.0.LWRP";
+                                    // // console.log("levelIdFlood: ", levelIdFlood);
+
+                                    // const lwrpApiUrl = setBaseUrl + `levels/${levelIdLwrp}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
+                                    // // console.log("lwrpApiUrl: ", lwrpApiUrl);
+                                    // lwrpPromises.push(
+                                    //     fetch(lwrpApiUrl)
+                                    //         .then(response => {
+                                    //             if (response.status === 404) {
+                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                    //                 return null; // Skip if not found
+                                    //             }
+                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //             return response.json();
+                                    //         })
+                                    //         .then(lwrpData => {
+                                    //             if (lwrpData) {
+                                    //                 lwrpMap.set(loc['location-id'], lwrpData);
+                                    //             }
+                                    //         })
+                                    //         .catch(error => {
+                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                    //         })
+                                    // );
+
+
 
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
@@ -213,7 +274,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
-                .then(() => Promise.all(metadataPromises))
+                // .then(() => Promise.all(metadataPromises))
+                // .then(() => Promise.all(floodPromises))
+                // .then(() => Promise.all(lwrpPromises))
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
                 .then(() => {
@@ -222,11 +285,22 @@ document.addEventListener('DOMContentLoaded', async function () {
                             basinData['assigned-locations'].forEach(loc => {
                                 // Add metadata, TSID, and last-value data to the location object
 
-                                // Add metadata to json
-                                const metadataMapData = metadataMap.get(loc['location-id']);
-                                if (metadataMapData) {
-                                    loc['metadata'] = metadataMapData;
-                                }
+                                // // Add metadata to json
+                                // const metadataMapData = metadataMap.get(loc['location-id']);
+                                // if (metadataMapData) {
+                                //     loc['metadata'] = metadataMapData;
+                                // }
+
+
+                                // // Add flood to json
+                                // const floodMapData = floodMap.get(loc['location-id']);
+                                // loc['flood'] = floodMapData !== undefined ? floodMapData : null;
+
+
+                                // // Add lwrp to json
+                                // const lwrpMapData = lwrpMap.get(loc['location-id']);
+                                // loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
+
 
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
@@ -250,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         }
                     });
 
-                    // console.log('combinedData:', combinedData);
+                    console.log('combinedData:', combinedData);
 
                     const timeSeriesDataPromises = [];
 
@@ -385,57 +459,40 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             // Convert times from UTC
                                             let latestTimeUTC = matchingEntry.extents[0]?.['latest-time'];
                                             let earliestTimeUTC = matchingEntry.extents[0]?.['earliest-time'];
-                                    
-                                            let latestTimeCST = new Date(latestTimeUTC); // Convert latestTime to Date object
-                                            let earliestTimeCST = new Date(earliestTimeUTC); // Convert earliestTime to Date object
-                                    
-                                            // Function to check if the given date is in Daylight Saving Time
-                                            let isDST = (date) => {
-                                                let jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
-                                                let jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-                                                return Math.min(jan, jul) !== date.getTimezoneOffset();
-                                            };
-                                    
-                                            // Adjust latestTime based on whether DST applies
-                                            if (isDST(latestTimeCST)) {
-                                                latestTimeCST.setHours(latestTimeCST.getHours() - 5); // CDT (UTC-5)
-                                            } else {
-                                                latestTimeCST.setHours(latestTimeCST.getHours() - 6); // CST (UTC-6)
-                                            }
-                                    
-                                            // Adjust earliestTime based on whether DST applies
-                                            if (isDST(earliestTimeCST)) {
-                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 5); // CDT (UTC-5)
-                                            } else {
-                                                earliestTimeCST.setHours(earliestTimeCST.getHours() - 6); // CST (UTC-6)
-                                            }
-                                    
-                                            // Helper function to format date as "MM-DD-YYYY HH:mm"
+
+                                            // Convert UTC times to Date objects
+                                            let latestTimeCST = new Date(latestTimeUTC);
+                                            let earliestTimeCST = new Date(earliestTimeUTC);
+
+                                            // Function to format date as "MM-DD-YYYY HH:mm"
                                             const formatDate = (date) => {
-                                                let month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-                                                let day = String(date.getDate()).padStart(2, '0');
-                                                let year = date.getFullYear();
-                                                let hours = String(date.getHours()).padStart(2, '0');
-                                                let minutes = String(date.getMinutes()).padStart(2, '0');
-                                                return `${month}-${day}-${year} ${hours}:${minutes}`;
+                                                return date.toLocaleString('en-US', {
+                                                    timeZone: 'America/Chicago', // Set the timezone to Central Time (CST/CDT)
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    hour12: false // Use 24-hour format
+                                                }).replace(',', ''); // Remove the comma from the formatted string
                                             };
-                                    
-                                            // Format the adjusted times
+
+                                            // Format the times to CST/CDT
                                             let formattedLatestTime = formatDate(latestTimeCST);
                                             let formattedEarliestTime = formatDate(earliestTimeCST);
-                                    
+
                                             // Construct the _data object with formatted times
                                             let _data = {
                                                 office: matchingEntry.office,
                                                 name: matchingEntry.name,
                                                 earliestTime: formattedEarliestTime, // Use formatted earliestTime
-                                                earliestTimeISO: earliestTimeCST.toISOString(),
+                                                earliestTimeISO: earliestTimeCST.toISOString(), // Store original ISO format as well
                                                 lastUpdate: matchingEntry.extents[0]?.['last-update'],
                                                 latestTime: formattedLatestTime, // Use formatted latestTime
-                                                latestTimeISO: latestTimeCST.toISOString(),
+                                                latestTimeISO: latestTimeCST.toISOString(), // Store original ISO format as well
                                                 tsid: matchingEntry['timeseries-id'],
                                             };
-                                    
+
                                             // Determine extent key based on tsid
                                             let extent_key;
                                             if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) {
@@ -443,17 +500,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             } else {
                                                 return; // Ignore if it doesn't match the condition
                                             }
-                                    
+
                                             // Update locData with extents-data
-                                            if (!locData[`extents-data`][extent_key])
+                                            if (!locData[`extents-data`][extent_key]) {
                                                 locData[`extents-data`][extent_key] = [_data];
-                                            else
+                                            } else {
                                                 locData[`extents-data`][extent_key].push(_data);
-                                    
+                                            }
+
                                         } else {
                                             console.warn(`No matching entry found for TSID: ${tsid}`);
                                         }
-                                    });                                                                                                      
+                                    });
                                 } catch (error) {
                                     console.error(`Error fetching additional data for location ${locData['location-id']}:`, error);
                                 }
@@ -540,10 +598,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
-
                     if (type === "status") {
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData);
+                        const table = createTable(combinedData, type, reportNumber);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -578,7 +635,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
                             // Only call createTable if no valid data exists
-                            const table = createTable(combinedData);
+                            const table = createTable(combinedData, type, reportNumber);
 
                             // Append the table to the specified container
                             const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
@@ -935,9 +992,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data) {
+    function createTable(data, type, reportNumber) {
         const table = document.createElement('table');
         table.id = 'customers';
+
+        // Determine if we're showing all rows based on type
+        const showAllRows = type === 'status';
 
         data.forEach(item => {
             let shouldPrintHeader = false;
@@ -946,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             item['assigned-locations'].forEach(location => {
                 const datmanData = location['extents-data']?.['datman'] || [];
 
-                // Check if any datmanEntry has lastDatmanValue as 'N/A'
+                // Process each datmanEntry
                 datmanData.forEach(datmanEntry => {
                     const tsid = datmanEntry.name;
                     const earliestTime = datmanEntry.earliestTime;
@@ -955,8 +1015,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                     // Check if 'datman-last-value' and corresponding entry exist
                     const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
 
-                    // Safely check lastDatmanValue and its properties
-                    if (lastDatmanValue && lastDatmanValue.value === 'N/A') {
+                    // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
+                    const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
+
+                    if (shouldDisplayRow) {
                         // Only print the header once if needed
                         if (!shouldPrintHeader) {
                             // Create header row for the item's ID
@@ -983,15 +1045,24 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        const cda = ''; // You may need to assign the appropriate value for 'cda'
                         link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
 
-                        // Create the row for 'N/A' value
+                        // Convert the value to a number and apply toFixed(2) if it's numeric
+                        let valueDisplay;
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueDisplay = 'N/A';
+                        } else {
+                            const numericValue = Number(lastDatmanValue.value);
+                            valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
+                        }
+
                         const valueSpan = document.createElement('span');
-                        valueSpan.classList.add('blinking-text');
-                        valueSpan.textContent = 'N/A';
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueSpan.classList.add('blinking-text');
+                        }
+                        valueSpan.textContent = valueDisplay;
 
                         const createDataRow = (cells) => {
                             const dataRow = document.createElement('tr');
