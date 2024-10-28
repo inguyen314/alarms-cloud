@@ -33,6 +33,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
         setLookBackHours = subtractHoursFromDate(new Date(), 2);
+    } else if (reportNumber === 4) {
+        console.log("********************* Setup to Run Water Quality DO Alarm *********************");
+        // Set the category and base URL for API calls
+        alarmDiv = "datman"; // stage_rev
+        setLocationCategory = "Basins";
+        setLocationGroupOwner = "MVS";
+        setTimeseriesGroup1 = "Conc-DO";
+        setLookBackHours = subtractHoursFromDate(new Date(), 2);
     }
 
     // Display the loading indicator for water quality alarm
@@ -495,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             // Determine extent key based on tsid
                                             let extent_key;
-                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow')) {
+                                            if (tsid.includes('Stage') || tsid.includes('Elev') || tsid.includes('Flow') || tsid.includes('Conc-DO')) {
                                                 extent_key = 'datman';
                                             } else {
                                                 return; // Ignore if it doesn't match the condition
@@ -1045,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
+                        link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
 
@@ -1263,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // First column (tsid) as a link
             const nameCell = document.createElement('td');
             const link = document.createElement('a');
-            link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`; // Set the link's destination (you can modify the URL)
+            link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
             link.target = '_blank'; // Open link in a new tab
             link.textContent = tsid;
             nameCell.appendChild(link);
