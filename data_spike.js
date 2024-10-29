@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 1;
+    let reportNumber = 5;
 
     if (reportNumber === 1) {
         console.log("*********************************************************************");
@@ -54,11 +54,11 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Data Spike Alarm *********************");
         console.log("*************************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // data_spike
+        alarmDiv = "data_spike"; // data_spike
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 24);
+        setLookBackHours = subtractHoursFromDate(new Date(), 72);
     }
 
     // Display the loading indicator for water quality alarm
