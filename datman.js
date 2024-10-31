@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLocationGroupOwner = null;
     let setTimeseriesGroup1 = null;
     let setLookBackHours = null;
-    let alarmDiv = null;
+    let reportDiv = null;
 
     let reportNumber = 1;
 
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Datman Alarm *********************");
         console.log("*********************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman";
+        reportDiv = "alarm_datman"; // alarm_datman
         setLocationCategory = "Basins";
         setLocationGroupOwner = "Datman";
         setTimeseriesGroup1 = "Datman";
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Mvd Hist Alarm *********************");
         console.log("***********************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // mvd_hist
+        reportDiv = "alarm_datman"; // alarm_mvd_hist
         setLocationCategory = "Mvd-Hist"; // Not able to use 'Bains' because these are division gages, not just in Saint Louis District
         setLocationGroupOwner = "MVD";
         setTimeseriesGroup1 = "Mvd-Hist";
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Stage Rev Alarm *********************");
         console.log("************************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
+        reportDiv = "alarm_datman"; // alarm_stage_rev
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Water Quality DO Alarm *********************");
         console.log("*******************************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
+        reportDiv = "alarm_datman"; // alarm_stage_rev
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Conc-DO";
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("********************* Setup to Run Data Spike Alarm *********************");
         console.log("*************************************************************************");
         // Set the category and base URL for API calls
-        alarmDiv = "datman"; // data_spike
+        reportDiv = "alarm_datman"; // alarm_data_spike
         setLocationCategory = "Basins";
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // Display the loading indicator for water quality alarm
-    const loadingIndicator = document.getElementById(`loading_alarm_${alarmDiv}`);
+    const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
     loadingIndicator.style.display = 'block'; // Show the loading indicator
 
     console.log("setLocationCategory: ", setLocationCategory);
@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        // setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         // console.log("setBaseUrl: ", setBaseUrl);
     } else if (cda === "public") {
@@ -90,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const lwrpMap = new Map();
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
+    const riverMileMap = new Map();
 
     // Initialize arrays for storing promises
     const metadataPromises = [];
@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const lwrpPromises = [];
     const ownerPromises = [];
     const datmanTsidPromises = [];
+    const riverMilePromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -124,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Initialize an array to store promises for fetching basin data
             const apiPromises = [];
-            const combinedData = [];
+            let combinedData = [];
 
             // Loop through each basin and fetch data for its assigned locations
             basins.forEach(basin => {
@@ -155,7 +156,46 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // If assigned locations exist, fetch metadata and time-series data
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
-                                    // console.log(loc['location-id']);
+
+                                    if ("river-mile" === "river-mile") {
+                                        // Fetch the JSON file
+                                        riverMilePromises.push(
+                                            fetch('json/gage_control_official.json')
+                                                .then(response => {
+                                                    if (!response.ok) {
+                                                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                    }
+                                                    return response.json();
+                                                })
+                                                .then(riverMilesJson => {
+                                                    // Loop through each basin in the JSON
+                                                    for (const basin in riverMilesJson) {
+                                                        const locations = riverMilesJson[basin];
+
+                                                        for (const loc in locations) {
+                                                            const ownerData = locations[loc];
+                                                            // console.log("ownerData: ", ownerData);
+
+                                                            // Retrieve river mile and other data
+                                                            const riverMile = ownerData.river_mile_hard_coded;
+
+                                                            // Create an output object using the location name as ID
+                                                            const outputData = {
+                                                                locationId: loc, // Using location name as ID
+                                                                basin: basin,
+                                                                riverMile: riverMile
+                                                            };
+
+                                                            // console.log("Output Data:", outputData);
+                                                            riverMileMap.set(loc, ownerData); // Store the data in the map
+                                                        }
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error('Problem with the fetch operation:', error);
+                                                })
+                                        )
+                                    }
 
                                     // // Fetch metadata for each location
                                     // const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
@@ -305,6 +345,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // .then(() => Promise.all(lwrpPromises))
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
+                .then(() => Promise.all(riverMilePromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
@@ -327,6 +368,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 // const lwrpMapData = lwrpMap.get(loc['location-id']);
                                 // loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
 
+                                const riverMileMapData = riverMileMap.get(loc['location-id']);
+                                if (riverMileMapData) {
+                                    loc['river-mile'] = riverMileMapData;
+                                }
 
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
@@ -626,12 +671,17 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
+                    // Step 4: Filter out basin where there are no gages
+                    combinedData = combinedData.filter(item => item['assigned-locations'] && item['assigned-locations'].length > 0);
+
+                    console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
+
                     if (type === "status") {
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData, type, reportNumber);
 
                         // Append the table to the specified container
-                        const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
+                        const container = document.getElementById(`table_container_${reportDiv}`);
                         container.appendChild(table);
                     } else {
                         // Check if there are valid lastDatmanValues in the data
@@ -643,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const table = createTableDataSpike(combinedData);
 
                                 // Append the table to the specified container
-                                const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
+                                const container = document.getElementById(`table_container_${reportDiv}`);
                                 container.appendChild(table);
                             } else {
                                 console.log("combinedData has all valid data and no data spikes detected. Displaying image instead.");
@@ -656,7 +706,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 img.style.height = '50px'; // Optional: set the image height
 
                                 // Get the container and append the image
-                                const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
+                                const container = document.getElementById(`table_container_${reportDiv}`);
                                 container.appendChild(img);
                             }
                         } else {
@@ -666,7 +716,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const table = createTable(combinedData, type, reportNumber);
 
                             // Append the table to the specified container
-                            const container = document.getElementById(`table_container_alarm_${alarmDiv}`);
+                            const container = document.getElementById(`table_container_${reportDiv}`);
                             container.appendChild(table);
                         }
                     }
