@@ -1045,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
+                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
 
@@ -1263,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // First column (tsid) as a link
             const nameCell = document.createElement('td');
             const link = document.createElement('a');
-            link.href = `https://wm.mvs.ds.usace.army.mil/district_templates/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`; // Set the link's destination (you can modify the URL)
+            link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`; // Set the link's destination (you can modify the URL)
             link.target = '_blank'; // Open link in a new tab
             link.textContent = tsid;
             nameCell.appendChild(link);
