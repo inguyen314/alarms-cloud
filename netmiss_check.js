@@ -3,11 +3,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     const loadingIndicator = document.getElementById('loading_alarm_netmiss_check');
     loadingIndicator.style.display = 'block';
 
-    let category = "Netmiss-Comparison";
+    let setCategory = "Netmiss-Comparison";
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        // setBaseUrl = `https://coe-${office.toLowerCase()}uwa04${office.toLowerCase()}.${office.toLowerCase()}.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
         console.log("setBaseUrl: ", setBaseUrl);
     } else if (cda === "public") {
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("setBaseUrl: ", setBaseUrl);
     }
 
-    const apiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${category}`;
+    const apiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
     // console.log("apiUrl: ", apiUrl);
 
     const netmissTsidMap = new Map();
@@ -45,11 +44,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 return;
             }
 
-            const targetCategory = { "office-id": office, "id": category };
+            const targetCategory = { "office-id": office, "id": setCategory };
             const filteredArray = filterByLocationCategory(data, targetCategory);
             const basins = filteredArray.map(item => item.id);
             if (basins.length === 0) {
-                console.warn('No basins found for the given category.');
+                console.warn('No basins found for the given setCategory.');
                 return;
             }
 
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const combinedData = [];
 
             basins.forEach(basin => {
-                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${category}`;
+                const basinApiUrl = setBaseUrl + `location/group/${basin}?office=${office}&category-id=${setCategory}`;
 
                 apiPromises.push(
                     fetch(basinApiUrl)
@@ -67,20 +66,20 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                             return response.json();
                         })
-                        .then(firstData => {
-                            // console.log('firstData:', firstData);
+                        .then(basinData => {
+                            console.log('basinData:', basinData);
 
-                            if (!firstData) {
+                            if (!basinData) {
                                 console.log(`No data for basin: ${basin}`);
                                 return;
                             }
 
-                            firstData[`assigned-locations`] = firstData[`assigned-locations`].filter(location => location.attribute <= 900);
-                            firstData[`assigned-locations`].sort((a, b) => a.attribute - b.attribute);
-                            combinedData.push(firstData);
+                            basinData[`assigned-locations`] = basinData[`assigned-locations`].filter(location => location.attribute <= 900);
+                            basinData[`assigned-locations`].sort((a, b) => a.attribute - b.attribute);
+                            combinedData.push(basinData);
 
-                            if (firstData['assigned-locations']) {
-                                firstData['assigned-locations'].forEach(loc => {
+                            if (basinData['assigned-locations']) {
+                                basinData['assigned-locations'].forEach(loc => {
 
                                     let netmissTsidApiUrl = setBaseUrl + `timeseries/group/Netmiss-Comparison?office=${office}&category-id=${loc['location-id']}`;
                                     if (netmissTsidApiUrl) {
@@ -114,8 +113,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                                     // Append the new object to assigned-time-series
                                                     netmissTsidData['assigned-time-series'].push(newAssignedTimeSeries);
-
-                                                    // Logging the updated object to verify the change
                                                     // console.log("netmissTsidData: ", netmissTsidData);
 
                                                     if (netmissTsidData) {
@@ -278,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Append the table to the specified container
                     const container = document.getElementById('table_container_alarm_netmiss_check');
-                    const table = createTable(combinedData);
+                    const table = createTableNetmissCheck(combinedData);
                     container.appendChild(table);
 
                     loadingIndicator.style.display = 'none';
@@ -293,20 +290,18 @@ document.addEventListener('DOMContentLoaded', async function () {
             loadingIndicator.style.display = 'none';
         });
 
-    function filterByLocationCategory(array, category) {
+    function filterByLocationCategory(array, setCategory) {
         return array.filter(item =>
             item['location-category'] &&
-            item['location-category']['office-id'] === category['office-id'] &&
-            item['location-category']['id'] === category['id']
+            item['location-category']['office-id'] === setCategory['office-id'] &&
+            item['location-category']['id'] === setCategory['id']
         );
     }
 
-    // Function to get current data time
     function subtractHoursFromDate(date, hoursToSubtract) {
         return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
     }
 
-    // Function to convert timestamp to specified format
     function formatNWSDate(timestamp) {
         const date = new Date(timestamp);
         const mm = String(date.getMonth() + 1).padStart(2, '0'); // Month
@@ -317,18 +312,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         return `${mm}-${dd}-${yyyy} ${hh}:${min}`;
     }
 
-    // Function to reorder based on attribute
     const reorderByAttribute = (data) => {
         data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
     };
 
-    // Function to format time to get 6am
     const formatTime = (date) => {
         const pad = (num) => (num < 10 ? '0' + num : num);
         return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     };
 
-    // Function to get 6am, 5am and 7am
     const findValuesAtTimes = (data) => {
         const result = [];
         const currentDate = new Date();
@@ -367,14 +359,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         return result;
     };
 
-    // Function to extract the am value for table
     function getValidValue(values) {
         // Get the first non-null value from the values array
         const validValue = values.find(valueEntry => valueEntry.value !== null);
         return validValue ? (validValue.value).toFixed(1) : 'N/A';
     }
 
-    function createTable(data) {
+    function createTableNetmissCheck(data) {
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
