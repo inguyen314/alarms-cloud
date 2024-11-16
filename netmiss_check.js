@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             return response.json();
                         })
                         .then(basinData => {
-                            console.log('basinData:', basinData);
+                            // console.log('basinData:', basinData);
 
                             if (!basinData) {
                                 console.log(`No data for basin: ${basin}`);
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         }
                     });
 
-                    console.log('combinedData:', combinedData);
+                    // console.log('combinedData:', combinedData);
 
                     // Fetch additional data using stageTsid, netmissTsid, nwsTsid
                     const additionalPromises = [];
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     return Promise.all(additionalPromises);
                 })
                 .then(() => {
-                    console.log('All data fetched successfully:', combinedData);
+                    console.log('All netmiss check data fetched successfully:', combinedData);
 
                     // Append the table to the specified container
                     const container = document.getElementById('table_container_alarm_netmiss_check');

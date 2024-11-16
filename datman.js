@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const attribute = location['attribute'].toString();
                             if (attribute.endsWith('.1')) {
                                 // Log the location being removed
-                                console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
+                                // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
                                 return false; // Filter out this location
                             }
                             return true; // Keep the location
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // If no match, remove the location
                             if (!matchingOwnerLocation) {
-                                console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
                                 locations.splice(i, 1);
                             }
                         }
