@@ -36,15 +36,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationGroupOwner = "MVS";
         setTimeseriesGroup1 = "Stage";
         setLookBackHours = subtractHoursFromDate(new Date(), 2);
-    } else if (reportNumber === 5) {
-        console.log("*************************************************************************");
-        console.log("********************* Data Spike Alarm **********************************");
-        console.log("*************************************************************************");
-        reportDiv = "alarm_datman"; // alarm_data_spike
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 24);
     }
 
     // Display the loading indicator for water quality alarm
