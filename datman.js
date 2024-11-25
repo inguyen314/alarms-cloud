@@ -1066,6 +1066,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const tsid = datmanEntry.name;
                     const earliestTime = datmanEntry.earliestTime;
                     const latestTime = datmanEntry.latestTime;
+                    // console.log("latestTime: ", latestTime);
+                    // console.log(typeof (latestTime));
 
                     // Check if 'datman-last-value' and corresponding entry exist
                     const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
@@ -1100,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
+                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
 
@@ -1119,15 +1121,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                         }
                         valueSpan.textContent = valueDisplay;
 
+                        // Compare latestTime with the current date
+                        const latestDate = new Date(latestTime);
+                        const currentDate = new Date();
+                        const daysDifference = Math.floor((currentDate - latestDate) / (1000 * 60 * 60 * 24));
+
                         const createDataRow = (cells) => {
                             const dataRow = document.createElement('tr');
-                            cells.forEach(cellValue => {
+                            cells.forEach((cellValue, index) => {
                                 const cell = document.createElement('td');
                                 if (cellValue instanceof HTMLElement) {
                                     cell.appendChild(cellValue);
                                 } else {
                                     cell.textContent = cellValue;
                                 }
+
+                                // Apply background color only to the "Latest Time" cell
+                                if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
+                                    cell.style.backgroundColor = daysDifference <= 30 ? 'lightgreen' : 'red';
+                                }
+
                                 dataRow.appendChild(cell);
                             });
                             table.appendChild(dataRow);
