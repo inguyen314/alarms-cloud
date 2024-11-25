@@ -1054,6 +1054,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Determine if we're showing all rows based on type
         const showAllRows = type === 'status';
 
+        console.log("data: ", data);
+
         data.forEach(item => {
             let shouldPrintHeader = false;
 
@@ -1090,9 +1092,14 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Create subheader row
                             const subHeaderRow = document.createElement('tr');
-                            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
+                            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach((headerText, index) => {
                                 const td = document.createElement('td');
                                 td.textContent = headerText;
+
+                                // Set column widths
+                                if (index === 0) td.style.width = '55%';
+                                else td.style.width = '15%';
+
                                 subHeaderRow.appendChild(td);
                             });
                             table.appendChild(subHeaderRow);
@@ -1100,11 +1107,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                             shouldPrintHeader = true;
                         }
 
-                        // Create the link for tsid
+                        // Create a link to wrap around the value
                         const link = document.createElement('a');
                         link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                         link.target = '_blank'; // Open link in a new tab
-                        link.textContent = tsid;
 
                         // Convert the value to a number and apply toFixed(2) if it's numeric
                         let valueDisplay;
@@ -1120,6 +1126,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             valueSpan.classList.add('blinking-text');
                         }
                         valueSpan.textContent = valueDisplay;
+                        link.appendChild(valueSpan); // Place the link around the value span
 
                         // Compare latestTime with the current date
                         const latestDate = new Date(latestTime);
@@ -1136,9 +1143,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     cell.textContent = cellValue;
                                 }
 
-                                // Apply background color only to the "Latest Time" cell
+                                // Set column widths
+                                if (index === 0) cell.style.width = '55%';
+                                else cell.style.width = '15%';
+
+                                // Apply background color and text color only to the "Latest Time" cell
                                 if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
-                                    cell.style.backgroundColor = daysDifference <= 30 ? 'lightgreen' : 'red';
+                                    cell.style.backgroundColor = daysDifference <= 90 ? 'lightgreen' : 'red';
                                 }
 
                                 dataRow.appendChild(cell);
@@ -1146,7 +1157,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             table.appendChild(dataRow);
                         };
 
-                        createDataRow([link, valueSpan, earliestTime, latestTime]);
+                        // Now pass the link as the second column (Value column)
+                        createDataRow([tsid, link, earliestTime, latestTime]);
                     }
                 });
             });
