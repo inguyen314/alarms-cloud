@@ -7,59 +7,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let alarmDiv = null;
 
-    let reportNumber = 5;
+    console.log("*************************************************************************");
+    console.log("********************* Setup to Run Data Spike Alarm *********************");
+    console.log("*************************************************************************");
+    // Set the category and base URL for API calls
+    alarmDiv = "data_spike";
+    setLocationCategory = "Basins";
+    setLocationGroupOwner = "MVS";
+    setTimeseriesGroup1 = "Stage";
+    setLookBackHours = subtractHoursFromDate(new Date(), 72);
 
-    if (reportNumber === 1) {
-        console.log("*********************************************************************");
-        console.log("********************* Setup to Run Datman Alarm *********************");
-        console.log("*********************************************************************");
-        // Set the category and base URL for API calls
-        alarmDiv = "datman";
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "Datman";
-        setTimeseriesGroup1 = "Datman";
-        setLookBackHours = subtractDaysFromDate(new Date(), 90);
-    } else if (reportNumber === 2) {
-        console.log("***********************************************************************");
-        console.log("********************* Setup to Run Mvd Hist Alarm *********************");
-        console.log("***********************************************************************");
-        // Set the category and base URL for API calls
-        alarmDiv = "datman"; // mvd_hist
-        setLocationCategory = "Mvd-Hist"; // Not able to use 'Bains' because these are division gages, not just in Saint Louis District
-        setLocationGroupOwner = "MVD";
-        setTimeseriesGroup1 = "Mvd-Hist";
-        setLookBackHours = subtractDaysFromDate(new Date(), 5);
-    } else if (reportNumber === 3) {
-        console.log("************************************************************************");
-        console.log("********************* Setup to Run Stage Rev Alarm *********************");
-        console.log("************************************************************************");
-        // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 2);
-    } else if (reportNumber === 4) {
-        console.log("*******************************************************************************");
-        console.log("********************* Setup to Run Water Quality DO Alarm *********************");
-        console.log("*******************************************************************************");
-        // Set the category and base URL for API calls
-        alarmDiv = "datman"; // stage_rev
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Conc-DO";
-        setLookBackHours = subtractHoursFromDate(new Date(), 2);
-    } else if (reportNumber === 5) {
-        console.log("*************************************************************************");
-        console.log("********************* Setup to Run Data Spike Alarm *********************");
-        console.log("*************************************************************************");
-        // Set the category and base URL for API calls
-        alarmDiv = "data_spike"; // data_spike
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 72);
-    }
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_alarm_${alarmDiv}`);
