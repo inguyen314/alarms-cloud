@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         setLocationCategory = "Basins";
         setLocationGroupOwner = "Datman";
         setTimeseriesGroup1 = "Datman";
-        setLookBackHours = subtractDaysFromDate(new Date(), 90);
+        setLookBackHours = subtractDaysFromDate(new Date(), 30);
     } else if (reportNumber === 2) {
         console.log("***********************************************************************");
         console.log("********************* Mvd Hist Alarm **********************************");
