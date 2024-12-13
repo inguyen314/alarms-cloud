@@ -7,36 +7,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let reportDiv = null;
 
-    let reportNumber = 1;
-
-    if (reportNumber === 1) {
-        console.log("*********************************************************************");
-        console.log("********************* Datman Alarm **********************************");
-        console.log("*********************************************************************");
-        reportDiv = "alarm_datman"; // alarm_datman
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "Datman";
-        setTimeseriesGroup1 = "Datman";
-        setLookBackHours = subtractDaysFromDate(new Date(), 30);
-    } else if (reportNumber === 2) {
-        console.log("***********************************************************************");
-        console.log("********************* Mvd Hist Alarm **********************************");
-        console.log("***********************************************************************");
-        reportDiv = "alarm_datman"; // alarm_mvd_hist
-        setLocationCategory = "Mvd-Hist";
-        setLocationGroupOwner = "MVD";
-        setTimeseriesGroup1 = "Mvd-Hist";
-        setLookBackHours = subtractDaysFromDate(new Date(), 5);
-    } else if (reportNumber === 3) {
-        console.log("************************************************************************");
-        console.log("********************* Stage Rev Alarm **********************************");
-        console.log("************************************************************************");
-        reportDiv = "alarm_datman"; // alarm_stage_rev
-        setLocationCategory = "Basins";
-        setLocationGroupOwner = "MVS";
-        setTimeseriesGroup1 = "Stage";
-        setLookBackHours = subtractHoursFromDate(new Date(), 2);
-    }
+    console.log("*********************************************************************");
+    console.log("********************* Datman Alarm **********************************");
+    console.log("*********************************************************************");
+    reportDiv = "alarm_datman"; // alarm_datman
+    setLocationCategory = "Basins";
+    setLocationGroupOwner = "Datman";
+    setTimeseriesGroup1 = "Datman";
+    setLookBackHours = subtractDaysFromDate(new Date(), 30);
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
