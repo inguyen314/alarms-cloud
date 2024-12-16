@@ -1061,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // Create header row for the item's ID
                             const headerRow = document.createElement('tr');
                             const idHeader = document.createElement('th');
-                            idHeader.colSpan = 4;
+                            idHeader.colSpan = 5; // Adjust for the new column
                             idHeader.style.backgroundColor = 'darkblue';
                             idHeader.style.color = 'white';
                             idHeader.textContent = item.id;
@@ -1070,12 +1070,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Create subheader row
                             const subHeaderRow = document.createElement('tr');
-                            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach((headerText, index) => {
+                            ['Time Series', 'Lastest Value', 'Earliest Time', 'Latest Time', 'Top 10'].forEach((headerText, index) => {
                                 const td = document.createElement('td');
                                 td.textContent = headerText;
 
                                 // Set column widths
-                                if (index === 0) td.style.width = '55%';
+                                if (index === 0) td.style.width = '40%'; // Adjust width for the new column
                                 else td.style.width = '15%';
 
                                 subHeaderRow.appendChild(td);
@@ -1122,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 }
 
                                 // Set column widths
-                                if (index === 0) cell.style.width = '55%';
+                                if (index === 0) cell.style.width = '40%'; // Adjust width for the new column
                                 else cell.style.width = '15%';
 
                                 // Apply background color and text color only to the "Latest Time" cell
@@ -1135,17 +1135,55 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     } else if (daysDifference <= 7) {
                                         cell.style.backgroundColor = 'yellow';
                                     } else {
-                                        cell.style.backgroundColor = 'red';
+                                        cell.style.backgroundColor = 'lightcoral';
+                                        cell.classList.add('blinking-text-non-red'); // Add blinking effect
                                     }
-                                }
+                                }                                
 
                                 dataRow.appendChild(cell);
                             });
                             table.appendChild(dataRow);
                         };
 
+                        // Generate Top 10 data as images
+                        const top10Container = document.createElement('div');
+                        top10Container.style.display = 'flex';
+                        top10Container.style.justifyContent = 'center';
+                        top10Container.style.alignItems = 'center';
+                        top10Container.style.gap = '10px'; // Add space between the images
+
+                        // Create the link for the up arrow
+                        const upArrowLink = document.createElement('a');
+                        upArrowLink.href = 'https://example.com/up-arrow-link'; // Replace with the actual link for up arrow
+                        upArrowLink.target = '_blank'; // Open link in a new tab
+
+                        const upArrow = document.createElement('img');
+                        upArrow.src = 'images/circle_green_arrow-up-fill.png'; // Replace with the actual path to the up-arrow image
+                        upArrow.alt = 'Up Arrow';
+                        upArrow.style.width = '20px';
+                        upArrow.style.height = '20px';
+
+                        upArrowLink.appendChild(upArrow); // Add the image inside the anchor
+
+                        // Create the link for the down arrow
+                        const downArrowLink = document.createElement('a');
+                        downArrowLink.href = 'https://example.com/down-arrow-link'; // Replace with the actual link for down arrow
+                        downArrowLink.target = '_blank'; // Open link in a new tab
+
+                        const downArrow = document.createElement('img');
+                        downArrow.src = 'images/circle_red_arrow-down-fill.png'; // Replace with the actual path to the down-arrow image
+                        downArrow.alt = 'Down Arrow';
+                        downArrow.style.width = '20px';
+                        downArrow.style.height = '20px';
+
+                        downArrowLink.appendChild(downArrow); // Add the image inside the anchor
+
+                        // Append both links to the container
+                        top10Container.appendChild(upArrowLink);
+                        top10Container.appendChild(downArrowLink);
+
                         // Now pass the link as the second column (Value column)
-                        createDataRow([tsid, link, earliestTime, latestTime]);
+                        createDataRow([tsid, link, earliestTime, latestTime, top10Container]);
                     }
                 });
             });
