@@ -633,7 +633,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     if (type === "status") {
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type, reportNumber);
+                        const table = createTable(combinedData, type);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             console.log("combinedData does not have all valid data. Calling createTable");
 
                             // Only call createTable if no valid data exists
-                            const table = createTable(combinedData, type, reportNumber);
+                            const table = createTable(combinedData, type);
 
                             // Append the table to the specified container
                             const container = document.getElementById(`table_container_${reportDiv}`);
@@ -1025,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data, type, reportNumber) {
+    function createTable(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
 
@@ -1127,7 +1127,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                 // Apply background color and text color only to the "Latest Time" cell
                                 if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
-                                    cell.style.backgroundColor = daysDifference <= 90 ? 'lightgreen' : 'red';
+                                    if (daysDifference === 0) {
+                                        cell.style.backgroundColor = 'green';
+                                        cell.style.color = 'white';
+                                    } else if (daysDifference <= 7) {
+                                        cell.style.backgroundColor = 'lightgreen';
+                                    } else if (daysDifference <= 7) {
+                                        cell.style.backgroundColor = 'yellow';
+                                    } else {
+                                        cell.style.backgroundColor = 'red';
+                                    }
                                 }
 
                                 dataRow.appendChild(cell);
