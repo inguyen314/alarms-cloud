@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
 
-                    if (type === "status") {
+                    if (type === "status" || type === "top10") {
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData, type);
 
@@ -1030,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         table.id = 'customers';
 
         // Determine if we're showing all rows based on type
-        const showAllRows = type === 'status';
+        const showAllRows = type === 'status' || 'top10';
 
         console.log("data: ", data);
 
@@ -1154,7 +1154,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for the up arrow
                         const upArrowLink = document.createElement('a');
-                        upArrowLink.href = 'https://example.com/up-arrow-link'; // Replace with the actual link for up arrow
+                        const earliest = new Date(earliestTime).getFullYear();
+                        const latest = new Date(latestTime).getFullYear();
+                        upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=Chester-Mississippi&begin=${earliest}&end=${latest}`;
                         upArrowLink.target = '_blank'; // Open link in a new tab
 
                         const upArrow = document.createElement('img');
