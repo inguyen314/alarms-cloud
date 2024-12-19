@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     setLocationGroupOwner = "Datman";
     setTimeseriesGroup1 = "Datman";
     setTimeseriesGroup2 = "Stage";
-    setLookBackHours = subtractDaysFromDate(new Date(), 30);
+    setLookBackHours = subtractDaysFromDate(new Date(), 60);
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
