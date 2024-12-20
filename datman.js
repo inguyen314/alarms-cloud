@@ -888,6 +888,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         const earliestTime = datmanEntry1.earliestTime;
                         const latestTime = datmanEntry1.latestTime;
+                        const earliestTime2 = datmanEntry2.earliestTime;
+                        const latestTime2 = datmanEntry2.latestTime;
 
                         // Check if 'datman-last-value' and corresponding entry exist
                         const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
@@ -996,7 +998,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const upArrowLink = document.createElement('a');
                             const earliest = new Date(earliestTime).getFullYear();
                             const latest = new Date(latestTime).getFullYear();
-                            upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}`;
+                            const earliest2 = new Date(earliestTime2).getFullYear();
+                            const latest2 = new Date(latestTime2).getFullYear();
+                            upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest2}&end_2=${latest2}`;
                             upArrowLink.target = '_blank'; // Open link in a new tab
 
                             const upArrow = document.createElement('img');
