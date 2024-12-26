@@ -867,6 +867,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // Determine if we're showing all rows based on type
         const showAllRows = type === 'status' || 'top10';
+        const showTop10Column = type === 'top10';
 
         console.log("data: ", data);
 
@@ -904,6 +905,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const headerRow = document.createElement('tr');
                                 const idHeader = document.createElement('th');
                                 idHeader.colSpan = 5; // Adjust for the new column
+                                idHeader.colSpan = showTop10Column ? 5 : 4; // Adjust for "Top 10" column
                                 idHeader.style.backgroundColor = 'darkblue';
                                 idHeader.style.color = 'white';
                                 idHeader.textContent = item.id;
@@ -912,14 +914,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                 // Create subheader row
                                 const subHeaderRow = document.createElement('tr');
-                                ['Time Series', 'Lastest Value', 'Earliest Time', 'Latest Time', 'Top 10'].forEach((headerText, index) => {
+                                const headers = ['Time Series', 'Latest Value', 'Earliest Time', 'Latest Time'];
+                                if (showTop10Column) headers.push('Top 10');
+                                headers.forEach((headerText, index) => {
                                     const td = document.createElement('td');
                                     td.textContent = headerText;
-
-                                    // Set column widths
-                                    if (index === 0) td.style.width = '40%'; // Adjust width for the new column
-                                    else td.style.width = '15%';
-
+                                    td.style.width = index === 0 ? '40%' : '15%'; // Adjust widths
                                     subHeaderRow.appendChild(td);
                                 });
                                 table.appendChild(subHeaderRow);
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                             cell.style.color = 'white';
                                         } else if (daysDifference <= 7) {
                                             cell.style.backgroundColor = 'lightgreen';
-                                        } else if (daysDifference <= 7) {
+                                        } else if (daysDifference <= 30) {
                                             cell.style.backgroundColor = 'yellow';
                                         } else {
                                             cell.style.backgroundColor = 'lightcoral';
@@ -989,47 +989,33 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Generate Top 10 data as images
                             const top10Container = document.createElement('div');
-                            top10Container.style.display = 'flex';
-                            top10Container.style.justifyContent = 'center';
-                            top10Container.style.alignItems = 'center';
-                            top10Container.style.gap = '10px'; // Add space between the images
+                            if (showTop10Column) {
+                                const upArrowLink = document.createElement('a');
+                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliestTime}&end=${latestTime}&begin_2=${earliestTime2}&end_2=${latestTime2}&top10=max`;
+                                upArrowLink.target = '_blank';
 
-                            // Create the link for the up arrow
-                            const upArrowLink = document.createElement('a');
-                            const earliest = new Date(earliestTime).getFullYear();
-                            const latest = new Date(latestTime).getFullYear();
-                            const earliest2 = new Date(earliestTime2).getFullYear();
-                            const latest2 = new Date(latestTime2).getFullYear();
-                            upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest2}&end_2=${latest2}&top10=max`;
-                            upArrowLink.target = '_blank'; // Open link in a new tab
+                                const upArrow = document.createElement('img');
+                                upArrow.src = 'images/circle_green_arrow-up-fill.png';
+                                upArrow.style.width = '20px';
+                                upArrowLink.appendChild(upArrow);
 
-                            const upArrow = document.createElement('img');
-                            upArrow.src = 'images/circle_green_arrow-up-fill.png'; // Replace with the actual path to the up-arrow image
-                            upArrow.alt = 'Up Arrow';
-                            upArrow.style.width = '20px';
-                            upArrow.style.height = '20px';
+                                const downArrowLink = document.createElement('a');
+                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliestTime}&end=${latestTime}&begin_2=${earliestTime2}&end_2=${latestTime2}&top10=min`;
+                                downArrowLink.target = '_blank';
 
-                            upArrowLink.appendChild(upArrow); // Add the image inside the anchor
+                                const downArrow = document.createElement('img');
+                                downArrow.src = 'images/circle_red_arrow-down-fill.png';
+                                downArrow.style.width = '20px';
+                                downArrowLink.appendChild(downArrow);
 
-                            // Create the link for the down arrow
-                            const downArrowLink = document.createElement('a');
-                            downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest2}&end_2=${latest2}&top10=min`;
-                            downArrowLink.target = '_blank'; // Open link in a new tab
+                                top10Container.appendChild(upArrowLink);
+                                top10Container.appendChild(downArrowLink);
+                            }
 
-                            const downArrow = document.createElement('img');
-                            downArrow.src = 'images/circle_red_arrow-down-fill.png'; // Replace with the actual path to the down-arrow image
-                            downArrow.alt = 'Down Arrow';
-                            downArrow.style.width = '20px';
-                            downArrow.style.height = '20px';
+                            const cells = [tsid, link, earliestTime, latestTime];
+                            if (showTop10Column) cells.push(top10Container);
 
-                            downArrowLink.appendChild(downArrow); // Add the image inside the anchor
-
-                            // Append both links to the container
-                            top10Container.appendChild(upArrowLink);
-                            top10Container.appendChild(downArrowLink);
-
-                            // Now pass the link as the second column (Value column)
-                            createDataRow([tsid, link, earliestTime, latestTime, top10Container]);
+                            createDataRow(cells);
                         }
                     }
                 }
