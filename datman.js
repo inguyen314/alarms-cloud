@@ -989,10 +989,19 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Generate Top 10 data as images
                             const top10Container = document.createElement('div');
+                            // top10Container.style.display = 'flex';
+                            // top10Container.style.justifyContent = 'center';
+                            // top10Container.style.alignItems = 'center';
+                            top10Container.style.gap = '10px'; // Add space between the images
+
                             if (showTop10Column) {
                                 const upArrowLink = document.createElement('a');
-                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliestTime}&end=${latestTime}&begin_2=${earliestTime2}&end_2=${latestTime2}&top10=max`;
-                                upArrowLink.target = '_blank';
+                                const earliest = new Date(earliestTime).getFullYear();
+                                const latest = new Date(latestTime).getFullYear();
+                                const earliest2 = new Date(earliestTime2).getFullYear();
+                                const latest2 = new Date(latestTime2).getFullYear();
+                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
+                                upArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const upArrow = document.createElement('img');
                                 upArrow.src = 'images/circle_green_arrow-up-fill.png';
@@ -1000,8 +1009,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 upArrowLink.appendChild(upArrow);
 
                                 const downArrowLink = document.createElement('a');
-                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliestTime}&end=${latestTime}&begin_2=${earliestTime2}&end_2=${latestTime2}&top10=min`;
-                                downArrowLink.target = '_blank';
+                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
+                                downArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const downArrow = document.createElement('img');
                                 downArrow.src = 'images/circle_red_arrow-down-fill.png';
