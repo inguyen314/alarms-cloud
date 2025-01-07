@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     setLocationCategory = "Basins";
     setLocationGroupOwner = "Datman";
     setTimeseriesGroup1 = "Datman";
-    setTimeseriesGroup2 = "Stage";
+    setTimeseriesGroup2 = "Datman-Stage";
     setLookBackHours = subtractDaysFromDate(new Date(), 60);
 
     // Display the loading indicator for water quality alarm
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log("setLocationCategory: ", setLocationCategory);
     console.log("setLocationGroupOwner: ", setLocationGroupOwner);
     console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
+    console.log("setTimeseriesGroup2: ", setTimeseriesGroup2);
     console.log("setLookBackHours: ", setLookBackHours);
 
     let setBaseUrl = null;
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             return response.json();
                         })
                         .then(getBasin => {
-                            // console.log('getBasin:', getBasin);
+                            console.log('getBasin:', getBasin);
 
                             if (!getBasin) {
                                 // console.log(`No data for basin: ${basin}`);
@@ -122,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 })
                                                 .then(ownerData => {
                                                     if (ownerData) {
-                                                        // console.log("ownerData", ownerData);
+                                                        console.log("ownerData", ownerData);
                                                         ownerMap.set(loc['location-id'], ownerData);
                                                     }
                                                 })
@@ -292,8 +293,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 });
                             };
 
-
-
                             // Create promises for temperature, depth, and DO time series
                             const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, stageRevTimeSeries, 'datman');
 
@@ -394,25 +393,28 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data fetched successfully:', combinedData);
 
-                    // Step 1: Filter out locations where 'attribute' ends with '.1'
-                    combinedData.forEach((dataObj, index) => {
-                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
+                    if (type) {
+                        console.log('Dont filtered all locations ending with .1:', combinedData);
+                    } else {
+                        // Step 1: Filter out locations where 'attribute' ends with '.1'
+                        combinedData.forEach((dataObj, index) => {
+                            // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
 
-                        // Filter out locations with 'attribute' ending in '.1'
-                        dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
-                            const attribute = location['attribute'].toString();
-                            if (attribute.endsWith('.1')) {
-                                // Log the location being removed
-                                // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
-                                return false; // Filter out this location
-                            }
-                            return true; // Keep the location
+                            // Filter out locations with 'attribute' ending in '.1'
+                            dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
+                                const attribute = location['attribute'].toString();
+                                if (attribute.endsWith('.1')) {
+                                    // Log the location being removed
+                                    // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
+                                    return false; // Filter out this location
+                                }
+                                return true; // Keep the location
+                            });
+
+                            // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
                         });
-
-                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
-                    });
-
-                    console.log('Filtered all locations ending with .1 successfully:', combinedData);
+                        console.log('Filtered all locations ending with .1 successfully:', combinedData);
+                    }
 
                     // Step 2: Filter out locations where 'location-id' doesn't match owner's 'assigned-locations'
                     combinedData.forEach(dataGroup => {
@@ -518,7 +520,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     console.error('There was a problem with one or more fetch operations:', error);
                     loadingIndicator.style.display = 'none';
                 });
-
         })
         .catch(error => {
             console.error('There was a problem with the initial fetch operation:', error);
@@ -942,7 +943,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
 
                             const valueSpan = document.createElement('span');
-                            if (lastDatmanValue.value === 'N/A') {
+                            if (lastDatmanValue.value === 'N/A' && tsid !== "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev") {
                                 valueSpan.classList.add('blinking-text');
                             }
                             valueSpan.textContent = valueDisplay;
@@ -969,16 +970,20 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                     // Apply background color and text color only to the "Latest Time" cell
                                     if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
-                                        if (daysDifference === 0) {
-                                            cell.style.backgroundColor = 'green';
-                                            cell.style.color = 'white';
-                                        } else if (daysDifference <= 7) {
-                                            cell.style.backgroundColor = 'lightgreen';
-                                        } else if (daysDifference <= 30) {
-                                            cell.style.backgroundColor = 'yellow';
+                                        if (tsid === "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev") {
+                                            cell.style.backgroundColor = 'gray';
                                         } else {
-                                            cell.style.backgroundColor = 'lightcoral';
-                                            cell.classList.add('blinking-text-non-red'); // Add blinking effect
+                                            if (daysDifference === 0) {
+                                                cell.style.backgroundColor = 'green';
+                                                cell.style.color = 'white';
+                                            } else if (daysDifference <= 7) {
+                                                cell.style.backgroundColor = 'lightgreen';
+                                            } else if (daysDifference <= 30) {
+                                                cell.style.backgroundColor = 'yellow';
+                                            } else {
+                                                cell.style.backgroundColor = 'lightcoral';
+                                                cell.classList.add('blinking-text-non-red'); // Add blinking effect
+                                            }
                                         }
                                     }
 
@@ -989,7 +994,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Generate Top 10 data as images
                             const top10Container = document.createElement('div');
-                            // top10Container.style.display = 'flex';
+                            top10Container.style.display = 'flex';
                             // top10Container.style.justifyContent = 'center';
                             // top10Container.style.alignItems = 'center';
                             top10Container.style.gap = '10px'; // Add space between the images
