@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data fetched successfully:', combinedData);
 
-                    if (type) {
+                    if (type !== null) {
                         console.log('Dont filtered all locations ending with .1:', combinedData);
                     } else {
                         // Step 1: Filter out locations where 'attribute' ends with '.1'
@@ -943,7 +943,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
 
                             const valueSpan = document.createElement('span');
-                            if (lastDatmanValue.value === 'N/A' && tsid !== "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev") {
+                            if (lastDatmanValue.value === 'N/A' && (tsid !== "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Paris-Mid Fork Salt.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Chesterville-Kaskaskia.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Pittsburg-Kaskaskia.Stage.Inst.~1Day.0.datman-rev")) {
                                 valueSpan.classList.add('blinking-text');
                             }
                             valueSpan.textContent = valueDisplay;
@@ -970,7 +970,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                     // Apply background color and text color only to the "Latest Time" cell
                                     if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
-                                        if (tsid === "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev") {
+                                        if (tsid === "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev" || tsid === "Paris-Mid Fork Salt.Stage.Inst.~1Day.0.datman-rev" || tsid === "Chesterville-Kaskaskia.Stage.Inst.~1Day.0.datman-rev" || tsid === "Pittsburg-Kaskaskia.Stage.Inst.~1Day.0.datman-rev") {
                                             cell.style.backgroundColor = 'gray';
                                         } else {
                                             if (daysDifference === 0) {
@@ -1252,3 +1252,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 });
+
+// ===============================================================
+// ============ How to add a datman gage
+// ===============================================================
+// 1. Add location to "Basins" category
+// 2. Add location to "MVS/Datman"
+// 3. Add Time Series Groups. "Stage", "Datman", and "Datman-Stage".
