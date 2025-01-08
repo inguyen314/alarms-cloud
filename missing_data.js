@@ -1,19 +1,22 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    const currentDateTime = new Date();
+    // const YesterdayDateTimeAt2359 = new Date();
+    const YesterdayDateTimeAt2359 = getYesterdayAt2359();
 
     let setLocationCategory = null;
     let setLocationGroupOwner = null;
     let setTimeseriesGroup1 = null;
-    let setTimeseriesGroup2 = null;
-    let setLookBackHours = null;
+    let setLookBackDays = null;
     let reportDiv = null;
 
-    reportDiv = "alarm_datman";
+    console.log("************************************************************************");
+    console.log("********************* missing_data Alarm **********************************");
+    console.log("************************************************************************");
+    reportDiv = "alarm_missing_data"; // alarm_missing_data
     setLocationCategory = "Basins";
-    setLocationGroupOwner = "Datman";
-    setTimeseriesGroup1 = "Datman";
-    setTimeseriesGroup2 = "Datman-Stage";
-    setLookBackHours = subtractDaysFromDate(new Date(), 60);
+    setLocationGroupOwner = "MVS";
+    setTimeseriesGroup1 = "Stage";
+    // setLookBackDays = subtractHoursFromDate(new Date(), 48);
+    setLookBackDays = getLookBackDateTime(2);
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
@@ -22,8 +25,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log("setLocationCategory: ", setLocationCategory);
     console.log("setLocationGroupOwner: ", setLocationGroupOwner);
     console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
-    console.log("setTimeseriesGroup2: ", setTimeseriesGroup2);
-    console.log("setLookBackHours: ", setLookBackHours);
+    console.log("setLookBackDays: ", setLookBackDays);
 
     let setBaseUrl = null;
     if (cda === "internal") {
@@ -41,12 +43,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
-    const tsidStageRevMap = new Map();
+    const riverMileMap = new Map();
 
     // Initialize arrays for storing promises
     const ownerPromises = [];
     const datmanTsidPromises = [];
-    const stageRevTsidPromises = [];
+    const riverMilePromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -90,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             return response.json();
                         })
                         .then(getBasin => {
-                            console.log('getBasin:', getBasin);
+                            // console.log('getBasin:', getBasin);
 
                             if (!getBasin) {
                                 // console.log(`No data for basin: ${basin}`);
@@ -105,6 +107,47 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // If assigned locations exist, fetch metadata and time-series data
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
+
+                                    if ("river-mile" === "river-mile") {
+                                        // Fetch the JSON file
+                                        riverMilePromises.push(
+                                            fetch('json/gage_control_official.json')
+                                                .then(response => {
+                                                    if (!response.ok) {
+                                                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                    }
+                                                    return response.json();
+                                                })
+                                                .then(riverMilesJson => {
+                                                    // Loop through each basin in the JSON
+                                                    for (const basin in riverMilesJson) {
+                                                        const locations = riverMilesJson[basin];
+
+                                                        for (const loc in locations) {
+                                                            const ownerData = locations[loc];
+                                                            // console.log("ownerData: ", ownerData);
+
+                                                            // Retrieve river mile and other data
+                                                            const riverMile = ownerData.river_mile_hard_coded;
+
+                                                            // Create an output object using the location name as ID
+                                                            const outputData = {
+                                                                locationId: loc, // Using location name as ID
+                                                                basin: basin,
+                                                                riverMile: riverMile
+                                                            };
+
+                                                            // console.log("Output Data:", outputData);
+                                                            riverMileMap.set(loc, ownerData); // Store the data in the map
+                                                        }
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error('Problem with the fetch operation:', error);
+                                                })
+                                        )
+                                    }
+
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
                                     // console.log("ownerApiUrl: ", ownerApiUrl);
@@ -123,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 })
                                                 .then(ownerData => {
                                                     if (ownerData) {
-                                                        console.log("ownerData", ownerData);
+                                                        // console.log("ownerData", ownerData);
                                                         ownerMap.set(loc['location-id'], ownerData);
                                                     }
                                                 })
@@ -153,27 +196,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 console.error(`Problem with the fetch operation for stage TSID data at ${tsidDatmanApiUrl}:`, error);
                                             })
                                     );
-
-                                    // Fetch stage-rev TSID data
-                                    const tsidStageRevApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup2}?office=${office}&category-id=${loc['location-id']}`;
-                                    // console.log('tsidStageRevApiUrl:', tsidStageRevApiUrl);
-                                    stageRevTsidPromises.push(
-                                        fetch(tsidStageRevApiUrl)
-                                            .then(response => {
-                                                if (response.status === 404) return null; // Skip if not found
-                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                return response.json();
-                                            })
-                                            .then(tsidStageRevData => {
-                                                // // console.log('tsidStageRevData:', tsidStageRevData);
-                                                if (tsidStageRevData) {
-                                                    tsidStageRevMap.set(loc['location-id'], tsidStageRevData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidStageRevApiUrl}:`, error);
-                                            })
-                                    );
                                 });
                             }
                         })
@@ -187,10 +209,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             Promise.all(apiPromises)
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
+                .then(() => Promise.all(riverMilePromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
+                                const riverMileMapData = riverMileMap.get(loc['location-id']);
+                                if (riverMileMapData) {
+                                    loc['river-mile'] = riverMileMapData;
+                                }
+
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
                                 if (ownerMapData) {
@@ -204,15 +232,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     loc['tsid-datman'] = tsidDatmanMapData;
                                 } else {
                                     loc['tsid-datman'] = null;  // Append null if missing
-                                }
-
-                                // Add stage rev to json
-                                const tsidStageRevMapData = tsidStageRevMap.get(loc['location-id']);
-                                if (tsidStageRevMapData) {
-                                    reorderByAttribute(tsidStageRevMapData);
-                                    loc['tsid-stage-rev'] = tsidStageRevMapData;
-                                } else {
-                                    loc['tsid-stage-rev'] = null;  // Append null if missing
                                 }
 
                                 // Initialize empty arrays to hold API and last-value data for various parameters
@@ -231,19 +250,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         for (const locData of dataArray['assigned-locations'] || []) {
                             // Handle temperature, depth, and DO time series
                             const datmanTimeSeries = locData['tsid-datman']?.['assigned-time-series'] || [];
-                            const stageRevTimeSeries = locData['tsid-stage-rev']?.['assigned-time-series'] || [];
 
                             // Function to create fetch promises for time series data
-                            const timeSeriesDataFetchPromises = (timeSeries, timeSeries2, type) => {
-                                // Combine both time series arrays with a type indicator
-                                const combinedTimeSeries = [
-                                    ...timeSeries.map(series => ({ ...series, seriesType: 'timeSeries' })),
-                                    ...timeSeries2.map(series => ({ ...series, seriesType: 'timeSeries2' }))
-                                ];
-
-                                return combinedTimeSeries.map((series, index) => {
+                            const timeSeriesDataFetchPromises = (timeSeries, type) => {
+                                return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
-                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${setLookBackHours.toISOString()}&end=${currentDateTime.toISOString()}&office=${office}`;
+                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${setLookBackDays.toISOString()}&end=${YesterdayDateTimeAt2359.toISOString()}&office=${office}`;
                                     // console.log('timeSeriesDataApiUrl:', timeSeriesDataApiUrl);
 
                                     return fetch(timeSeriesDataApiUrl, {
@@ -260,33 +272,126 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 });
                                             }
 
-                                            // Handle type-specific logic
-                                            const apiDataKey = type === 'datman' ? 'datman-api-data' : null;
-                                            const lastValueKey = type === 'datman' ? 'datman-last-value' : null;
-                                            const maxValueKey = type === 'datman' ? 'datman-max-value' : null;
-                                            const minValueKey = type === 'datman' ? 'datman-min-value' : null;
+                                            console.log("data: ", data);
 
-                                            if (!apiDataKey || !lastValueKey || !maxValueKey || !minValueKey) {
+                                            let apiDataKey;
+                                            if (type === 'datman') {
+                                                apiDataKey = 'datman-api-data'; // Assuming 'do-api-data' is the key for dissolved oxygen data
+                                            } else {
                                                 console.error('Unknown type:', type);
-                                                return; // Early return to avoid processing unknown types
+                                                return; // Early return to avoid pushing data if type is unknown
                                             }
-
-                                            locData[apiDataKey] = locData[apiDataKey] || [];
-                                            locData[lastValueKey] = locData[lastValueKey] || [];
-                                            locData[maxValueKey] = locData[maxValueKey] || [];
-                                            locData[minValueKey] = locData[minValueKey] || [];
 
                                             locData[apiDataKey].push(data);
 
-                                            // Get and store values for each metric
-                                            const lastValue = getLastNonNullValue(data, tsid);
-                                            const maxValue = getMaxValue(data, tsid);
-                                            const minValue = getMinValue(data, tsid);
+                                            let lastValueKey;
+                                            if (type === 'datman') {
+                                                lastValueKey = 'datman-last-value';  // Assuming 'do-last-value' is the key for dissolved oxygen last value
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
 
+                                            let maxValueKey;
+                                            if (type === 'datman') {
+                                                maxValueKey = 'datman-max-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let minValueKey;
+                                            if (type === 'datman') {
+                                                minValueKey = 'datman-min-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let dayValueKey;
+                                            if (type === 'datman') {
+                                                dayValueKey = 'datman-day-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let cCountByDayValueKey;
+                                            if (type === 'datman') {
+                                                cCountByDayValueKey = 'datman-c-count-by-day-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let cCountValueKey;
+                                            if (type === 'datman') {
+                                                cCountValueKey = 'datman-c-count-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            if (!locData[lastValueKey]) {
+                                                locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[maxValueKey]) {
+                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[minValueKey]) {
+                                                locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[dayValueKey]) {
+                                                locData[dayValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[cCountByDayValueKey]) {
+                                                locData[cCountByDayValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[cCountValueKey]) {
+                                                locData[cCountValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            // Get and store the last non-null value for the specific tsid
+                                            const lastValue = getLastNonNullValue(data, tsid);
+
+                                            // Get and store the last max value for the specific tsid
+                                            const maxValue = getMaxValue(data, tsid);
+                                            // console.log("maxValue: ", maxValue);
+
+                                            // Get and store the last min value for the specific tsid
+                                            const minValue = getMinValue(data, tsid);
+                                            // console.log("minValue: ", minValue);
+
+                                            const dayValue = groupByDay(data, tsid);
+                                            // console.log("dayValue: ", dayValue);
+
+                                            const cCountByDay = getCCountByDay(data, tsid);
+                                            // console.log("cCountByDay: ", cCountByDay);
+
+                                            const cCount = getCCount(data, tsid);
+                                            // console.log("cCount: ", cCount);
+
+                                            // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
                                             locData[maxValueKey].push(maxValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
                                             locData[minValueKey].push(minValue);
+
+                                            locData[dayValueKey].push(dayValue);
+
+                                            locData[cCountByDayValueKey].push(cCountByDay);
+
+                                            locData[cCountValueKey].push(cCount);
                                         })
+
                                         .catch(error => {
                                             console.error(`Error fetching additional data for location ${locData['location-id']} with TSID ${tsid}:`, error);
                                         });
@@ -294,8 +399,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                             };
 
                             // Create promises for temperature, depth, and DO time series
-                            const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, stageRevTimeSeries, 'datman');
+                            const datmanPromises = timeSeriesDataFetchPromises(datmanTimeSeries, 'datman');
 
+                            // Additional API call for extents data
                             const timeSeriesDataExtentsApiCall = async (type) => {
                                 const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}`;
                                 // console.log('extentsApiUrl:', extentsApiUrl);
@@ -311,10 +417,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     locData['extents-api-data'] = data;
                                     locData[`extents-data`] = {};
 
-                                    // Collect TSIDs from both datman and stageRev time series
+                                    // Collect TSIDs from temp, depth, and DO time series
                                     const datmanTids = datmanTimeSeries.map(series => series['timeseries-id']);
-                                    const stageRevTids = stageRevTimeSeries.map(series => series['timeseries-id']);
-                                    const allTids = [...datmanTids, ...stageRevTids]; // Combine both arrays
+                                    const allTids = [...datmanTids]; // Combine both arrays
 
                                     allTids.forEach((tsid, index) => {
                                         const matchingEntry = data.entries.find(entry => entry['name'] === tsid);
@@ -393,28 +498,24 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data fetched successfully:', combinedData);
 
-                    if (type !== null) {
-                        console.log('Dont filtered all locations ending with .1:', combinedData);
-                    } else {
-                        // Step 1: Filter out locations where 'attribute' ends with '.1'
-                        combinedData.forEach((dataObj, index) => {
-                            // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
+                    // Step 1: Filter out locations where 'attribute' ends with '.1'
+                    combinedData.forEach((dataObj, index) => {
+                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
 
-                            // Filter out locations with 'attribute' ending in '.1'
-                            dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
-                                const attribute = location['attribute'].toString();
-                                if (attribute.endsWith('.1')) {
-                                    // Log the location being removed
-                                    // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
-                                    return false; // Filter out this location
-                                }
-                                return true; // Keep the location
-                            });
-
-                            // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
+                        // Filter out locations with 'attribute' ending in '.1'
+                        dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
+                            const attribute = location['attribute'].toString();
+                            if (attribute.endsWith('.1')) {
+                                // Log the location being removed
+                                // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
+                                return false; // Filter out this location
+                            }
+                            return true; // Keep the location
                         });
-                        console.log('Filtered all locations ending with .1 successfully:', combinedData);
-                    }
+
+                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
+                    });
+                    console.log('Filtered all locations ending with .1 successfully:', combinedData);
 
                     // Step 2: Filter out locations where 'location-id' doesn't match owner's 'assigned-locations'
                     combinedData.forEach(dataGroup => {
@@ -437,7 +538,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
                     });
-
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
 
                     // Step 3: Filter out locations where 'tsid-datman' is null
@@ -461,15 +561,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
                     });
-
                     console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
                     // Step 4: Filter out basin where there are no gages
                     combinedData = combinedData.filter(item => item['assigned-locations'] && item['assigned-locations'].length > 0);
-
                     console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
 
-                    if (type === "status" || type === "top10") {
+                    // Print Table Here
+                    if (type === "status") {
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData, type);
 
@@ -520,6 +619,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     console.error('There was a problem with one or more fetch operations:', error);
                     loadingIndicator.style.display = 'none';
                 });
+
         })
         .catch(error => {
             console.error('There was a problem with the initial fetch operation:', error);
@@ -867,10 +967,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         table.id = 'customers';
 
         // Determine if we're showing all rows based on type
-        const showAllRows = type === 'status' || 'top10';
-        const showTop10Column = type === 'top10';
-
-        console.log("data: ", data);
+        const showAllRows = type === 'status';
 
         data.forEach(item => {
             let shouldPrintHeader = false;
@@ -879,160 +976,81 @@ document.addEventListener('DOMContentLoaded', async function () {
             item['assigned-locations'].forEach(location => {
                 const datmanData = location['extents-data']?.['datman'] || [];
 
-                // Iterate through pairs of entries in datmanData
-                for (let i = 0; i < datmanData.length; i++) {
-                    for (let j = i + 1; j < datmanData.length; j++) {
-                        const datmanEntry1 = datmanData[i];
-                        const datmanEntry2 = datmanData[j];
+                // Process each datmanEntry
+                datmanData.forEach(datmanEntry => {
+                    const tsid = datmanEntry.name;
+                    const earliestTime = datmanEntry.earliestTime;
+                    const latestTime = datmanEntry.latestTime;
 
-                        const tsid = datmanEntry1.name; // First TSID
-                        const tsid_2 = datmanEntry2.name; // Second TSID
+                    // Check if 'datman-last-value' and corresponding entry exist
+                    const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
 
-                        const earliestTime = datmanEntry1.earliestTime;
-                        const latestTime = datmanEntry1.latestTime;
-                        const earliestTime2 = datmanEntry2.earliestTime;
-                        const latestTime2 = datmanEntry2.latestTime;
+                    // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
+                    const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
 
-                        // Check if 'datman-last-value' and corresponding entry exist
-                        const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
+                    if (shouldDisplayRow) {
+                        // Only print the header once if needed
+                        if (!shouldPrintHeader) {
+                            // Create header row for the item's ID
+                            const headerRow = document.createElement('tr');
+                            const idHeader = document.createElement('th');
+                            idHeader.colSpan = 4;
+                            idHeader.style.backgroundColor = 'darkblue';
+                            idHeader.style.color = 'white';
+                            idHeader.textContent = item.id;
+                            headerRow.appendChild(idHeader);
+                            table.appendChild(headerRow);
 
-                        // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
-                        const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
+                            // Create subheader row
+                            const subHeaderRow = document.createElement('tr');
+                            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
+                                const td = document.createElement('td');
+                                td.textContent = headerText;
+                                subHeaderRow.appendChild(td);
+                            });
+                            table.appendChild(subHeaderRow);
 
-                        if (shouldDisplayRow) {
-                            // Only print the header once if needed
-                            if (!shouldPrintHeader) {
-                                // Create header row for the item's ID
-                                const headerRow = document.createElement('tr');
-                                const idHeader = document.createElement('th');
-                                idHeader.colSpan = 5; // Adjust for the new column
-                                idHeader.colSpan = showTop10Column ? 5 : 4; // Adjust for "Top 10" column
-                                idHeader.style.backgroundColor = 'darkblue';
-                                idHeader.style.color = 'white';
-                                idHeader.textContent = item.id;
-                                headerRow.appendChild(idHeader);
-                                table.appendChild(headerRow);
-
-                                // Create subheader row
-                                const subHeaderRow = document.createElement('tr');
-                                const headers = ['Time Series', 'Latest Value', 'Earliest Time', 'Latest Time'];
-                                if (showTop10Column) headers.push('Top 10');
-                                headers.forEach((headerText, index) => {
-                                    const td = document.createElement('td');
-                                    td.textContent = headerText;
-                                    td.style.width = index === 0 ? '40%' : '15%'; // Adjust widths
-                                    subHeaderRow.appendChild(td);
-                                });
-                                table.appendChild(subHeaderRow);
-
-                                shouldPrintHeader = true;
-                            }
-
-                            // Create a link to wrap around the value
-                            const link = document.createElement('a');
-                            link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
-                            link.target = '_blank'; // Open link in a new tab
-
-                            // Convert the value to a number and apply toFixed(2) if it's numeric
-                            let valueDisplay;
-                            if (lastDatmanValue.value === 'N/A') {
-                                valueDisplay = 'N/A';
-                            } else {
-                                const numericValue = Number(lastDatmanValue.value);
-                                valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
-                            }
-
-                            const valueSpan = document.createElement('span');
-                            if (lastDatmanValue.value === 'N/A' && (tsid !== "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Paris-Mid Fork Salt.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Chesterville-Kaskaskia.Stage.Inst.~1Day.0.datman-rev" || tsid !== "Pittsburg-Kaskaskia.Stage.Inst.~1Day.0.datman-rev")) {
-                                valueSpan.classList.add('blinking-text');
-                            }
-                            valueSpan.textContent = valueDisplay;
-                            link.appendChild(valueSpan); // Place the link around the value span
-
-                            // Compare latestTime with the current date
-                            const latestDate = new Date(latestTime);
-                            const currentDate = new Date();
-                            const daysDifference = Math.floor((currentDate - latestDate) / (1000 * 60 * 60 * 24));
-
-                            const createDataRow = (cells) => {
-                                const dataRow = document.createElement('tr');
-                                cells.forEach((cellValue, index) => {
-                                    const cell = document.createElement('td');
-                                    if (cellValue instanceof HTMLElement) {
-                                        cell.appendChild(cellValue);
-                                    } else {
-                                        cell.textContent = cellValue;
-                                    }
-
-                                    // Set column widths
-                                    if (index === 0) cell.style.width = '40%'; // Adjust width for the new column
-                                    else cell.style.width = '15%';
-
-                                    // Apply background color and text color only to the "Latest Time" cell
-                                    if (index === 3) { // Assuming "Latest Time" is the 4th column (index 3)
-                                        if (tsid === "Brickeys Ldg-Mississippi.Stage.Inst.~1Day.0.datman-rev" || tsid === "Paris-Mid Fork Salt.Stage.Inst.~1Day.0.datman-rev" || tsid === "Chesterville-Kaskaskia.Stage.Inst.~1Day.0.datman-rev" || tsid === "Pittsburg-Kaskaskia.Stage.Inst.~1Day.0.datman-rev") {
-                                            cell.style.backgroundColor = 'lightgray';
-                                        } else {
-                                            if (daysDifference === 0) {
-                                                cell.style.backgroundColor = 'green';
-                                                cell.style.color = 'white';
-                                            } else if (daysDifference <= 7) {
-                                                cell.style.backgroundColor = 'lightgreen';
-                                            } else if (daysDifference <= 30) {
-                                                cell.style.backgroundColor = 'yellow';
-                                            } else {
-                                                cell.style.backgroundColor = 'lightcoral';
-                                                cell.classList.add('blinking-text-non-red'); // Add blinking effect
-                                            }
-                                        }
-                                    }
-
-                                    dataRow.appendChild(cell);
-                                });
-                                table.appendChild(dataRow);
-                            };
-
-                            // Generate Top 10 data as images
-                            const top10Container = document.createElement('div');
-                            top10Container.style.display = 'flex';
-                            // top10Container.style.justifyContent = 'center';
-                            // top10Container.style.alignItems = 'center';
-                            top10Container.style.gap = '10px'; // Add space between the images
-
-                            if (showTop10Column) {
-                                const upArrowLink = document.createElement('a');
-                                const earliest = new Date(earliestTime).getFullYear();
-                                const latest = new Date(latestTime).getFullYear();
-                                const earliest2 = new Date(earliestTime2).getFullYear();
-                                const latest2 = new Date(latestTime2).getFullYear();
-                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
-                                upArrowLink.target = '_blank'; // Open link in a new tab
-
-                                const upArrow = document.createElement('img');
-                                upArrow.src = 'images/circle_green_arrow-up-fill.png';
-                                upArrow.style.width = '20px';
-                                upArrowLink.appendChild(upArrow);
-
-                                const downArrowLink = document.createElement('a');
-                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
-                                downArrowLink.target = '_blank'; // Open link in a new tab
-
-                                const downArrow = document.createElement('img');
-                                downArrow.src = 'images/circle_red_arrow-down-fill.png';
-                                downArrow.style.width = '20px';
-                                downArrowLink.appendChild(downArrow);
-
-                                top10Container.appendChild(upArrowLink);
-                                top10Container.appendChild(downArrowLink);
-                            }
-
-                            const cells = [tsid, link, earliestTime, latestTime];
-                            if (showTop10Column) cells.push(top10Container);
-
-                            createDataRow(cells);
+                            shouldPrintHeader = true;
                         }
+
+                        // Create the link for tsid
+                        const link = document.createElement('a');
+                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
+                        link.target = '_blank'; // Open link in a new tab
+                        link.textContent = tsid;
+
+                        // Convert the value to a number and apply toFixed(2) if it's numeric
+                        let valueDisplay;
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueDisplay = 'N/A';
+                        } else {
+                            const numericValue = Number(lastDatmanValue.value);
+                            valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
+                        }
+
+                        const valueSpan = document.createElement('span');
+                        if (lastDatmanValue.value === 'N/A') {
+                            valueSpan.classList.add('blinking-text');
+                        }
+                        valueSpan.textContent = valueDisplay;
+
+                        const createDataRow = (cells) => {
+                            const dataRow = document.createElement('tr');
+                            cells.forEach(cellValue => {
+                                const cell = document.createElement('td');
+                                if (cellValue instanceof HTMLElement) {
+                                    cell.appendChild(cellValue);
+                                } else {
+                                    cell.textContent = cellValue;
+                                }
+                                dataRow.appendChild(cell);
+                            });
+                            table.appendChild(dataRow);
+                        };
+
+                        createDataRow([link, valueSpan, earliestTime, latestTime]);
                     }
-                }
+                });
             });
         });
 
@@ -1251,11 +1269,109 @@ document.addEventListener('DOMContentLoaded', async function () {
             table.appendChild(dataRow);
         }
     }
-});
 
-// ===============================================================
-// ============ How to add a datman gage
-// ===============================================================
-// 1. Add location to "Basins" category
-// 2. Add location to "MVS/Datman"
-// 3. Add Time Series Groups. "Stage", "Datman", and "Datman-Stage".
+    function groupByDay(data) {
+        // Create an object to store the grouped values
+        const groupedData = {};
+    
+        // Iterate over the values array
+        data.values.forEach(([dateTime, value, qualityCode]) => {
+            // Extract the date from the datetime string (we only need the date part)
+            const date = dateTime.split(' ')[0];
+    
+            // Initialize an array for each date if it doesn't exist
+            if (!groupedData[date]) {
+                groupedData[date] = [];
+            }
+    
+            // Push the current value into the corresponding date's array
+            groupedData[date].push({
+                dateTime: dateTime,
+                value: value,
+                qualityCode: qualityCode
+            });
+        });
+    
+        return groupedData;
+    }
+
+    function getLookBackDateTime(daysAgo) {
+        // Get the current date
+        const now = new Date();
+    
+        // Get Central Time offset (in milliseconds) for current time
+        const centralTimeOffset = -6 * 60 * 60 * 1000; // Central Standard Time (CST) UTC -6
+    
+        // Adjust current date to Central Time by adding the offset
+        const centralTime = new Date(now.getTime() + centralTimeOffset);
+    
+        // Subtract the passed number of days
+        centralTime.setDate(centralTime.getDate() - daysAgo);
+    
+        // Set time to 12:01 AM
+        centralTime.setHours(0, 0, 0, 0);
+    
+        return centralTime;
+    }
+
+    function getYesterdayAt2359() {
+        // Get the current date
+        const now = new Date();
+    
+        // Subtract one day to get yesterday
+        now.setDate(now.getDate() - 1);
+    
+        // Set the time to 23:59:00
+        now.setHours(23, 59, 0, 0);
+    
+        return now;
+    }
+
+    function getCCount(data) {
+        // Extract the interval from the name property
+        const name = data.name || "";
+        const intervalMatch = name.match(/\.([^\.]+)Minutes\./);
+        const interval = intervalMatch ? intervalMatch[1] : null;
+    
+        // Determine the c_count based on the interval
+        switch (interval) {
+            case "15":
+                return 96;
+            case "30":
+                return 48;
+            default:
+                return 909;
+        }
+    }
+
+    function getCCountByDay(data) {
+        // Map intervals to their respective cCounts
+        const intervalMap = {
+            "15Minutes": 96,
+            "30Minutes": 48,
+        };
+        
+        // Default cCount for unknown intervals
+        const defaultCCount = 909;
+    
+        // Extract interval from data
+        const interval = data.name.split(".")[3]; // Assuming interval is always the 4th part in the name
+        const cCount = intervalMap[interval] || defaultCCount;
+    
+        // Group values by day
+        const groupedByDay = data.values.reduce((acc, [dateTime]) => {
+            const day = dateTime.split(" ")[0]; // Extract the day part (e.g., "01-05-2025")
+            if (!acc[day]) acc[day] = 0;
+            acc[day] += 1;
+            return acc;
+        }, {});
+    
+        // Map days to cCounts
+        const cCountByDay = {};
+        for (const day in groupedByDay) {
+            cCountByDay[day] = cCount;
+        }
+    
+        return cCountByDay;
+    }
+});
