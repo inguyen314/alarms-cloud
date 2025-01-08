@@ -1253,9 +1253,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                         if (ratio !== 'N/A' && ratio < 1) {
                             const row = document.createElement('tr');
     
-                            // Column 1: datmanTsidData
+                            // Column 1: datmanTsidData with link
                             const tsidCell = document.createElement('td');
-                            tsidCell.textContent = datmanTsidData;
+                            if (datmanTsidData !== 'N/A') {
+                                const link = document.createElement('a');
+                                link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${encodeURIComponent(datmanTsidData)}&cda=internal&lookback=7`;
+                                link.target = '_blank'; // Open link in a new tab
+                                link.textContent = datmanTsidData;
+                                tsidCell.appendChild(link);
+                            } else {
+                                tsidCell.textContent = datmanTsidData;
+                            }
                             row.appendChild(tsidCell);
     
                             // Column 2: datmanCCountRequiredData
@@ -1276,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     
         return table;
-    }    
+    }        
 
     function groupByDay(data) {
         // Create an object to store the grouped values
