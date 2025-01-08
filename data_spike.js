@@ -464,39 +464,27 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
                     // Check if there are valid lastDatmanValues in the data
-                    if (hasLastValue(combinedData)) {
-                        console.log("combinedData has all valid data.");
-                        if (hasDataSpike(combinedData)) {
-                            console.log("combinedData has all valid data, but data spike detected. Calling createTableDataSpike.");
-                            // call createTable if data spike exists
-                            const table = createTableDataSpike(combinedData);
-
-                            // Append the table to the specified container
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(table);
-                        } else {
-                            console.log("combinedData has all valid data and no data spikes detected. Displaying image instead.");
-
-                            // Create an img element
-                            const img = document.createElement('img');
-                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                            img.alt = 'Process Completed'; // Optional alt text for accessibility
-                            img.style.width = '50px'; // Optional: set the image width
-                            img.style.height = '50px'; // Optional: set the image height
-
-                            // Get the container and append the image
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(img);
-                        }
-                    } else {
-                        console.log("combinedData does not have all valid data. Calling createTable");
-
-                        // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type, reportNumber);
+                    if (hasDataSpike(combinedData)) {
+                        console.log("combinedData has data spike. Calling createTableDataSpike.");
+                        // call createTable if data spike exists
+                        const table = createTableDataSpike(combinedData);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
                         container.appendChild(table);
+                    } else {
+                        console.log("combinedData has no data spikes detected. Displaying image instead.");
+
+                        // Create an img element
+                        const img = document.createElement('img');
+                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                        img.alt = 'Process Completed'; // Optional alt text for accessibility
+                        img.style.width = '50px'; // Optional: set the image width
+                        img.style.height = '50px'; // Optional: set the image height
+
+                        // Get the container and append the image
+                        const container = document.getElementById(`table_container_${reportDiv}`);
+                        container.appendChild(img);
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -744,7 +732,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data, type, reportNumber) {
+    function createTable(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
 
