@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     setLocationGroupOwner = "MVS";
     setTimeseriesGroup1 = "Stage";
     // setLookBackDays = subtractHoursFromDate(new Date(), 48);
-    setLookBackDays = getLookBackDateTime(7);
+    setLookBackDays = getLookBackDateTime(77);
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
@@ -567,12 +567,30 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Print Table Here
                     if (type === "missing") {
-                        // Only call createTable if no valid data exists
-                        const table = createTableMissing(combinedData, type);
+                        if (hasMissingData(combinedData)) {
+                            console.log("Missing data found. Creating table...");
+                            const table = createTableMissing(combinedData, type);
 
-                        // Append the table to the specified container
-                        const container = document.getElementById(`table_container_${reportDiv}`);
-                        container.appendChild(table);
+                            // Append the table to the specified container
+                            const container = document.getElementById(`table_container_${reportDiv}`);
+                            container.appendChild(table);
+                        } else {
+                            console.log("No missing data found.");
+
+                            // Create an img element
+                            const img = document.createElement('img');
+                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                            img.alt = 'Process Completed'; // Optional alt text for accessibility
+                            img.style.width = '50px'; // Optional: set the image width
+                            img.style.height = '50px'; // Optional: set the image height
+
+                            // Get the container and append the image
+                            const container = document.getElementById(`table_container_${reportDiv}`);
+                            container.appendChild(img);
+                        }
+
+
+
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -1235,24 +1253,24 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableMissing(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-    
+
         data.forEach(item => {
             item['assigned-locations'].forEach(location => {
                 const datmanTsidData = location['extents-data']?.['datman']?.[0]?.['name'] || 'N/A';
                 const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
                 const datmanCCountData = location['datman-c-count-by-day-value'] || [];
-    
+
                 // Iterate over datmanCCountData entries
                 datmanCCountData.forEach(dayData => {
                     Object.entries(dayData).forEach(([date, count]) => {
-                        const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count) 
-                            ? (count / datmanCCountRequiredData).toFixed(2) 
+                        const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count)
+                            ? (count / datmanCCountRequiredData).toFixed(2)
                             : 'N/A';
-    
+
                         // Only include rows where ratio is less than 1
                         if (ratio !== 'N/A' && ratio < 1) {
                             const row = document.createElement('tr');
-    
+
                             // Column 1: datmanTsidData with link
                             const tsidCell = document.createElement('td');
                             if (datmanTsidData !== 'N/A') {
@@ -1265,26 +1283,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 tsidCell.textContent = datmanTsidData;
                             }
                             row.appendChild(tsidCell);
-    
+
                             // Column 2: datmanCCountRequiredData
                             const requiredCell = document.createElement('td');
                             requiredCell.textContent = datmanCCountRequiredData;
                             row.appendChild(requiredCell);
-    
+
                             // Column 3: Ratio
                             const ratioCell = document.createElement('td');
                             ratioCell.textContent = ratio;
                             row.appendChild(ratioCell);
-    
+
                             table.appendChild(row);
                         }
                     });
                 });
             });
         });
-    
+
         return table;
-    }        
+    }
 
     function groupByDay(data) {
         // Create an object to store the grouped values
@@ -1363,9 +1381,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     function getCCountByDay(data) {
         // Remove entries where the value is null
         data.values = data.values.filter(entry => entry[1] !== null);
-    
+
         console.log("Filtered data:", data);
-    
+
         // Group filtered values by day
         const groupedByDay = data.values.reduce((acc, [dateTime]) => {
             const day = dateTime.split(" ")[0]; // Extract the day part (e.g., "12-31-2024")
@@ -1373,9 +1391,36 @@ document.addEventListener('DOMContentLoaded', async function () {
             acc[day] += 1; // Increment the count for this day
             return acc;
         }, {});
-    
+
         console.log("Grouped by day:", groupedByDay);
-    
+
         return groupedByDay; // Return the actual counts per day
-    }          
+    }
+
+    function hasMissingData(data) {
+        let missingDataFound = false;
+
+        // Check for missing data
+        data.forEach(item => {
+            item['assigned-locations'].forEach(location => {
+                const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
+                const datmanCCountData = location['datman-c-count-by-day-value'] || [];
+
+                datmanCCountData.forEach(dayData => {
+                    Object.entries(dayData).forEach(([date, count]) => {
+                        const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count)
+                            ? (count / datmanCCountRequiredData).toFixed(2)
+                            : 'N/A';
+
+                        // If ratio is less than 1, mark as missing data
+                        if (ratio !== 'N/A' && ratio < 1) {
+                            missingDataFound = true;
+                        }
+                    });
+                });
+            });
+        });
+
+        return missingDataFound;
+    }
 });
