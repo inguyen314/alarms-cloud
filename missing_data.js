@@ -8,15 +8,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackDays = null;
     let reportDiv = null;
 
-    console.log("************************************************************************");
     console.log("********************* missing_data Alarm **********************************");
-    console.log("************************************************************************");
     reportDiv = "alarm_missing_data"; // alarm_missing_data
     setLocationCategory = "Basins";
     setLocationGroupOwner = "MVS";
     setTimeseriesGroup1 = "Stage";
     // setLookBackDays = subtractHoursFromDate(new Date(), 48);
-    setLookBackDays = getLookBackDateTime(2);
+    setLookBackDays = getLookBackDateTime(7);
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
@@ -255,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const timeSeriesDataFetchPromises = (timeSeries, type) => {
                                 return timeSeries.map((series, index) => {
                                     const tsid = series['timeseries-id'];
-                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?name=${tsid}&begin=${setLookBackDays.toISOString()}&end=${YesterdayDateTimeAt2359.toISOString()}&office=${office}`;
+                                    const timeSeriesDataApiUrl = setBaseUrl + `timeseries?page-size=10000000&name=${tsid}&begin=${setLookBackDays.toISOString()}&end=${YesterdayDateTimeAt2359.toISOString()}&office=${office}`;
                                     // console.log('timeSeriesDataApiUrl:', timeSeriesDataApiUrl);
 
                                     return fetch(timeSeriesDataApiUrl, {
@@ -272,7 +270,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 });
                                             }
 
-                                            console.log("data: ", data);
+                                            // console.log("data: ", data);
 
                                             let apiDataKey;
                                             if (type === 'datman') {
@@ -568,49 +566,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                     console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
 
                     // Print Table Here
-                    if (type === "status") {
+                    if (type === "missing") {
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type);
+                        const table = createTableMissing(combinedData, type);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
                         container.appendChild(table);
-                    } else {
-                        // Check if there are valid lastDatmanValues in the data
-                        if (hasLastValue(combinedData)) {
-                            console.log("combinedData has all valid data.");
-                            if (hasDataSpike(combinedData)) {
-                                console.log("combinedData has all valid data, but data spike detected. Calling createTableDataSpike.");
-                                // call createTable if data spike exists
-                                const table = createTableDataSpike(combinedData);
-
-                                // Append the table to the specified container
-                                const container = document.getElementById(`table_container_${reportDiv}`);
-                                container.appendChild(table);
-                            } else {
-                                console.log("combinedData has all valid data and no data spikes detected. Displaying image instead.");
-
-                                // Create an img element
-                                const img = document.createElement('img');
-                                img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                                img.alt = 'Process Completed'; // Optional alt text for accessibility
-                                img.style.width = '50px'; // Optional: set the image width
-                                img.style.height = '50px'; // Optional: set the image height
-
-                                // Get the container and append the image
-                                const container = document.getElementById(`table_container_${reportDiv}`);
-                                container.appendChild(img);
-                            }
-                        } else {
-                            console.log("combinedData does not have all valid data. Calling createTable");
-
-                            // Only call createTable if no valid data exists
-                            const table = createTable(combinedData, type);
-
-                            // Append the table to the specified container
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(table);
-                        }
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -1270,20 +1232,66 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
+    function createTableMissing(data, type) {
+        const table = document.createElement('table');
+        table.id = 'customers';
+    
+        data.forEach(item => {
+            item['assigned-locations'].forEach(location => {
+                const datmanTsidData = location['extents-data']?.['datman']?.[0]?.['name'] || 'N/A';
+                const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
+                const datmanCCountData = location['datman-c-count-by-day-value'] || [];
+    
+                // Iterate over datmanCCountData entries
+                datmanCCountData.forEach(dayData => {
+                    Object.entries(dayData).forEach(([date, count]) => {
+                        const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count) 
+                            ? (count / datmanCCountRequiredData).toFixed(2) 
+                            : 'N/A';
+    
+                        // Only include rows where ratio is less than 1
+                        if (ratio !== 'N/A' && ratio < 1) {
+                            const row = document.createElement('tr');
+    
+                            // Column 1: datmanTsidData
+                            const tsidCell = document.createElement('td');
+                            tsidCell.textContent = datmanTsidData;
+                            row.appendChild(tsidCell);
+    
+                            // Column 2: datmanCCountRequiredData
+                            const requiredCell = document.createElement('td');
+                            requiredCell.textContent = datmanCCountRequiredData;
+                            row.appendChild(requiredCell);
+    
+                            // Column 3: Ratio
+                            const ratioCell = document.createElement('td');
+                            ratioCell.textContent = ratio;
+                            row.appendChild(ratioCell);
+    
+                            table.appendChild(row);
+                        }
+                    });
+                });
+            });
+        });
+    
+        return table;
+    }    
+
     function groupByDay(data) {
         // Create an object to store the grouped values
         const groupedData = {};
-    
+
         // Iterate over the values array
         data.values.forEach(([dateTime, value, qualityCode]) => {
             // Extract the date from the datetime string (we only need the date part)
             const date = dateTime.split(' ')[0];
-    
+
             // Initialize an array for each date if it doesn't exist
             if (!groupedData[date]) {
                 groupedData[date] = [];
             }
-    
+
             // Push the current value into the corresponding date's array
             groupedData[date].push({
                 dateTime: dateTime,
@@ -1291,39 +1299,39 @@ document.addEventListener('DOMContentLoaded', async function () {
                 qualityCode: qualityCode
             });
         });
-    
+
         return groupedData;
     }
 
     function getLookBackDateTime(daysAgo) {
         // Get the current date
         const now = new Date();
-    
+
         // Get Central Time offset (in milliseconds) for current time
         const centralTimeOffset = -6 * 60 * 60 * 1000; // Central Standard Time (CST) UTC -6
-    
+
         // Adjust current date to Central Time by adding the offset
         const centralTime = new Date(now.getTime() + centralTimeOffset);
-    
+
         // Subtract the passed number of days
         centralTime.setDate(centralTime.getDate() - daysAgo);
-    
+
         // Set time to 12:01 AM
         centralTime.setHours(0, 0, 0, 0);
-    
+
         return centralTime;
     }
 
     function getYesterdayAt2359() {
         // Get the current date
         const now = new Date();
-    
+
         // Subtract one day to get yesterday
         now.setDate(now.getDate() - 1);
-    
+
         // Set the time to 23:59:00
         now.setHours(23, 59, 0, 0);
-    
+
         return now;
     }
 
@@ -1332,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const name = data.name || "";
         const intervalMatch = name.match(/\.([^\.]+)Minutes\./);
         const interval = intervalMatch ? intervalMatch[1] : null;
-    
+
         // Determine the c_count based on the interval
         switch (interval) {
             case "15":
@@ -1345,33 +1353,21 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     function getCCountByDay(data) {
-        // Map intervals to their respective cCounts
-        const intervalMap = {
-            "15Minutes": 96,
-            "30Minutes": 48,
-        };
-        
-        // Default cCount for unknown intervals
-        const defaultCCount = 909;
+        // Remove entries where the value is null
+        data.values = data.values.filter(entry => entry[1] !== null);
     
-        // Extract interval from data
-        const interval = data.name.split(".")[3]; // Assuming interval is always the 4th part in the name
-        const cCount = intervalMap[interval] || defaultCCount;
+        console.log("Filtered data:", data);
     
-        // Group values by day
+        // Group filtered values by day
         const groupedByDay = data.values.reduce((acc, [dateTime]) => {
-            const day = dateTime.split(" ")[0]; // Extract the day part (e.g., "01-05-2025")
+            const day = dateTime.split(" ")[0]; // Extract the day part (e.g., "12-31-2024")
             if (!acc[day]) acc[day] = 0;
-            acc[day] += 1;
+            acc[day] += 1; // Increment the count for this day
             return acc;
         }, {});
     
-        // Map days to cCounts
-        const cCountByDay = {};
-        for (const day in groupedByDay) {
-            cCountByDay[day] = cCount;
-        }
+        console.log("Grouped by day:", groupedByDay);
     
-        return cCountByDay;
-    }
+        return groupedByDay; // Return the actual counts per day
+    }          
 });
