@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize arrays for storing promises
     const ownerPromises = [];
     const datmanTsidPromises = [];
-    const riverMilePromises = [];
+    // const riverMilePromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -106,45 +106,45 @@ document.addEventListener('DOMContentLoaded', async function () {
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
 
-                                    if ("river-mile" === "river-mile") {
-                                        // Fetch the JSON file
-                                        riverMilePromises.push(
-                                            fetch('json/gage_control_official.json')
-                                                .then(response => {
-                                                    if (!response.ok) {
-                                                        throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                    }
-                                                    return response.json();
-                                                })
-                                                .then(riverMilesJson => {
-                                                    // Loop through each basin in the JSON
-                                                    for (const basin in riverMilesJson) {
-                                                        const locations = riverMilesJson[basin];
+                                    // if ("river-mile" === "river-mile") {
+                                    //     // Fetch the JSON file
+                                    //     riverMilePromises.push(
+                                    //         fetch('json/gage_control_official.json')
+                                    //             .then(response => {
+                                    //                 if (!response.ok) {
+                                    //                     throw new Error(`Network response was not ok: ${response.statusText}`);
+                                    //                 }
+                                    //                 return response.json();
+                                    //             })
+                                    //             .then(riverMilesJson => {
+                                    //                 // Loop through each basin in the JSON
+                                    //                 for (const basin in riverMilesJson) {
+                                    //                     const locations = riverMilesJson[basin];
 
-                                                        for (const loc in locations) {
-                                                            const ownerData = locations[loc];
-                                                            // console.log("ownerData: ", ownerData);
+                                    //                     for (const loc in locations) {
+                                    //                         const ownerData = locations[loc];
+                                    //                         // console.log("ownerData: ", ownerData);
 
-                                                            // Retrieve river mile and other data
-                                                            const riverMile = ownerData.river_mile_hard_coded;
+                                    //                         // Retrieve river mile and other data
+                                    //                         const riverMile = ownerData.river_mile_hard_coded;
 
-                                                            // Create an output object using the location name as ID
-                                                            const outputData = {
-                                                                locationId: loc, // Using location name as ID
-                                                                basin: basin,
-                                                                riverMile: riverMile
-                                                            };
+                                    //                         // Create an output object using the location name as ID
+                                    //                         const outputData = {
+                                    //                             locationId: loc, // Using location name as ID
+                                    //                             basin: basin,
+                                    //                             riverMile: riverMile
+                                    //                         };
 
-                                                            // console.log("Output Data:", outputData);
-                                                            riverMileMap.set(loc, ownerData); // Store the data in the map
-                                                        }
-                                                    }
-                                                })
-                                                .catch(error => {
-                                                    console.error('Problem with the fetch operation:', error);
-                                                })
-                                        )
-                                    }
+                                    //                         // console.log("Output Data:", outputData);
+                                    //                         riverMileMap.set(loc, ownerData); // Store the data in the map
+                                    //                     }
+                                    //                 }
+                                    //             })
+                                    //             .catch(error => {
+                                    //                 console.error('Problem with the fetch operation:', error);
+                                    //             })
+                                    //     )
+                                    // }
 
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
@@ -207,15 +207,15 @@ document.addEventListener('DOMContentLoaded', async function () {
             Promise.all(apiPromises)
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
-                .then(() => Promise.all(riverMilePromises))
+                // .then(() => Promise.all(riverMilePromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
-                                const riverMileMapData = riverMileMap.get(loc['location-id']);
-                                if (riverMileMapData) {
-                                    loc['river-mile'] = riverMileMapData;
-                                }
+                                // const riverMileMapData = riverMileMap.get(loc['location-id']);
+                                // if (riverMileMapData) {
+                                //     loc['river-mile'] = riverMileMapData;
+                                // }
 
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
@@ -566,31 +566,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                     console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
 
                     // Print Table Here
-                    if (type === "missing") {
-                        if (hasMissingData(combinedData)) {
-                            console.log("Missing data found. Creating table...");
-                            const table = createTableMissing(combinedData, type);
+                    if (hasMissingData(combinedData)) {
+                        console.log("Missing data found. Creating table...");
+                        const table = createTableMissing(combinedData, type);
 
-                            // Append the table to the specified container
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(table);
-                        } else {
-                            console.log("No missing data found.");
+                        // Append the table to the specified container
+                        const container = document.getElementById(`table_container_${reportDiv}`);
+                        container.appendChild(table);
+                    } else {
+                        console.log("No missing data found.");
 
-                            // Create an img element
-                            const img = document.createElement('img');
-                            img.src = '/apps/alarms/images/passed.png'; // Set the image source
-                            img.alt = 'Process Completed'; // Optional alt text for accessibility
-                            img.style.width = '50px'; // Optional: set the image width
-                            img.style.height = '50px'; // Optional: set the image height
+                        // Create an img element
+                        const img = document.createElement('img');
+                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                        img.alt = 'Process Completed'; // Optional alt text for accessibility
+                        img.style.width = '50px'; // Optional: set the image width
+                        img.style.height = '50px'; // Optional: set the image height
 
-                            // Get the container and append the image
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(img);
-                        }
-
-
-
+                        // Get the container and append the image
+                        const container = document.getElementById(`table_container_${reportDiv}`);
+                        container.appendChild(img);
                     }
 
                     loadingIndicator.style.display = 'none';
@@ -1253,24 +1248,24 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableMissing(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-    
+
         data.forEach(item => {
             item['assigned-locations'].forEach(location => {
                 const datmanTsidData = location['extents-data']?.['datman']?.[0]?.['name'] || 'N/A';
                 const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
                 const datmanCCountData = location['datman-c-count-by-day-value'] || [];
-    
+
                 // Iterate over datmanCCountData entries
                 datmanCCountData.forEach(dayData => {
                     Object.entries(dayData).forEach(([date, count]) => {
                         const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count)
                             ? (count / datmanCCountRequiredData).toFixed(2)
                             : 'N/A';
-    
+
                         // Only include rows where ratio is less than 1
                         if (ratio !== 'N/A' && ratio < 1) {
                             const row = document.createElement('tr');
-    
+
                             // Column 1: datmanTsidData with link
                             const tsidCell = document.createElement('td');
                             if (datmanTsidData !== 'N/A') {
@@ -1283,31 +1278,31 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 tsidCell.textContent = datmanTsidData;
                             }
                             row.appendChild(tsidCell);
-    
+
                             // Column 2: Date
                             const dateCell = document.createElement('td');
                             dateCell.textContent = date;
                             row.appendChild(dateCell);
-    
+
                             // Column 3: datmanCCountRequiredData
                             const requiredCell = document.createElement('td');
                             requiredCell.textContent = datmanCCountRequiredData;
                             row.appendChild(requiredCell);
-    
+
                             // Column 4: Ratio
                             const ratioCell = document.createElement('td');
                             ratioCell.textContent = ratio;
                             row.appendChild(ratioCell);
-    
+
                             table.appendChild(row);
                         }
                     });
                 });
             });
         });
-    
+
         return table;
-    }    
+    }
 
     function groupByDay(data) {
         // Create an object to store the grouped values
@@ -1387,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Remove entries where the value is null
         data.values = data.values.filter(entry => entry[1] !== null);
 
-        console.log("Filtered data:", data);
+        // console.log("Filtered data:", data);
 
         // Group filtered values by day
         const groupedByDay = data.values.reduce((acc, [dateTime]) => {
@@ -1397,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             return acc;
         }, {});
 
-        console.log("Grouped by day:", groupedByDay);
+        // console.log("Grouped by day:", groupedByDay);
 
         return groupedByDay; // Return the actual counts per day
     }

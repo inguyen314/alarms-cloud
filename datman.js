@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 })
                                                 .then(ownerData => {
                                                     if (ownerData) {
-                                                        console.log("ownerData", ownerData);
+                                                        // console.log("ownerData", ownerData);
                                                         ownerMap.set(loc['location-id'], ownerData);
                                                     }
                                                 })
@@ -437,7 +437,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
                     });
-
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
 
                     // Step 3: Filter out locations where 'tsid-datman' is null
@@ -461,12 +460,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                             }
                         }
                     });
-
                     console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
                     // Step 4: Filter out basin where there are no gages
                     combinedData = combinedData.filter(item => item['assigned-locations'] && item['assigned-locations'].length > 0);
-
                     console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
 
                     if (type === "status" || type === "top10") {

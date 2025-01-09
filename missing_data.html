@@ -23,7 +23,7 @@
     var cda = urlParams.get('cda') || cdaDefault;
     console.log('cda: ', cda);
 
-    var type = urlParams.get('type');
+    var type = urlParams.get('type') || 'missing';
     console.log('type: ', type);
 
     var basin = urlParams.get('basin') || 'Mississippi';
