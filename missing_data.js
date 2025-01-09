@@ -1248,24 +1248,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableMissing(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-
+    
+        console.log("data: ", data);
+    
         data.forEach(item => {
+            const rows = []; // Collect valid rows for this basin
+    
             item['assigned-locations'].forEach(location => {
                 const datmanTsidData = location['extents-data']?.['datman']?.[0]?.['name'] || 'N/A';
                 const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
                 const datmanCCountData = location['datman-c-count-by-day-value'] || [];
-
-                // Iterate over datmanCCountData entries
+    
                 datmanCCountData.forEach(dayData => {
                     Object.entries(dayData).forEach(([date, count]) => {
                         const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count)
                             ? (count / datmanCCountRequiredData).toFixed(2)
                             : 'N/A';
-
+    
                         // Only include rows where ratio is less than 1
                         if (ratio !== 'N/A' && ratio < 1) {
                             const row = document.createElement('tr');
-
+    
                             // Column 1: datmanTsidData with link
                             const tsidCell = document.createElement('td');
                             if (datmanTsidData !== 'N/A') {
@@ -1278,31 +1281,46 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 tsidCell.textContent = datmanTsidData;
                             }
                             row.appendChild(tsidCell);
-
+    
                             // Column 2: Date
                             const dateCell = document.createElement('td');
                             dateCell.textContent = date;
                             row.appendChild(dateCell);
-
+    
                             // Column 3: datmanCCountRequiredData
                             const requiredCell = document.createElement('td');
                             requiredCell.textContent = datmanCCountRequiredData;
                             row.appendChild(requiredCell);
-
+    
                             // Column 4: Ratio
                             const ratioCell = document.createElement('td');
                             ratioCell.textContent = ratio;
                             row.appendChild(ratioCell);
-
-                            table.appendChild(row);
+    
+                            rows.push(row); // Add the valid row to the collection
                         }
                     });
                 });
             });
+    
+            // Only add the basin header and rows if there are valid rows
+            if (rows.length > 0) {
+                const headerRow = document.createElement('tr');
+                const idHeader = document.createElement('th');
+                idHeader.colSpan = 4;
+                idHeader.style.backgroundColor = 'darkblue';
+                idHeader.style.color = 'white';
+                idHeader.textContent = item.id;
+                headerRow.appendChild(idHeader);
+                table.appendChild(headerRow);
+    
+                // Append all collected rows
+                rows.forEach(row => table.appendChild(row));
+            }
         });
-
+    
         return table;
-    }
+    }      
 
     function groupByDay(data) {
         // Create an object to store the grouped values
