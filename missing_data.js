@@ -498,72 +498,89 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Step 1: Filter out locations where 'attribute' ends with '.1'
                     combinedData.forEach((dataObj, index) => {
-                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
+                        // Ensure 'assigned-locations' exists and is an array
+                        if (Array.isArray(dataObj['assigned-locations'])) {
+                            // Filter out locations with 'attribute' ending in '.1'
+                            dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
+                                const attribute = location?.['attribute']?.toString();
 
-                        // Filter out locations with 'attribute' ending in '.1'
-                        dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
-                            const attribute = location['attribute'].toString();
-                            if (attribute.endsWith('.1')) {
-                                // Log the location being removed
-                                // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
-                                return false; // Filter out this location
-                            }
-                            return true; // Keep the location
-                        });
+                                if (attribute?.endsWith('.1')) {
+                                    console.log(
+                                        `Removing location with attribute '${attribute}' and id '${location?.['location-id'] || 'unknown'}' at index ${index}`
+                                    );
+                                    return false; // Filter out this location
+                                }
 
-                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
+                                return true; // Keep the location
+                            });
+                        } else {
+                            console.warn(`Skipping dataObj at index ${index} as 'assigned-locations' is not a valid array.`);
+                        }
                     });
+
                     console.log('Filtered all locations ending with .1 successfully:', combinedData);
 
                     // Step 2: Filter out locations where 'location-id' doesn't match owner's 'assigned-locations'
                     combinedData.forEach(dataGroup => {
-                        // Iterate over each assigned-location in the dataGroup
-                        let locations = dataGroup['assigned-locations'];
+                        // Check if 'assigned-locations' exists in the dataGroup
+                        let locations = dataGroup['assigned-locations'] || [];
 
                         // Loop through the locations array in reverse to safely remove items
                         for (let i = locations.length - 1; i >= 0; i--) {
                             let location = locations[i];
 
-                            // Find if the current location-id exists in owner's assigned-locations
-                            let matchingOwnerLocation = location['owner']['assigned-locations'].some(ownerLoc => {
-                                return ownerLoc['location-id'] === location['location-id'];
-                            });
+                            // Check if 'owner' and 'assigned-locations' exist in the location
+                            if (location?.owner?.['assigned-locations']) {
+                                // Find if the current location-id exists in owner's assigned-locations
+                                let matchingOwnerLocation = location['owner']['assigned-locations'].some(ownerLoc =>
+                                    ownerLoc['location-id'] === location['location-id']
+                                );
 
-                            // If no match, remove the location
-                            if (!matchingOwnerLocation) {
-                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                // If no match, remove the location
+                                if (!matchingOwnerLocation) {
+                                    console.log(`Removing location with id ${location['location-id']} as it does not match owner's assigned-locations`);
+                                    locations.splice(i, 1);
+                                }
+                            } else {
+                                // If owner or owner's assigned-locations is missing, remove the location
+                                console.warn(
+                                    `Owner or owner's assigned-locations is undefined for location-id ${location?.['location-id'] || 'unknown'}. Removing the location.`
+                                );
                                 locations.splice(i, 1);
                             }
                         }
                     });
+
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
 
                     // Step 3: Filter out locations where 'tsid-datman' is null
                     combinedData.forEach(dataGroup => {
-                        // Iterate over each assigned-location in the dataGroup
-                        let locations = dataGroup['assigned-locations'];
+                        // Check if 'assigned-locations' exists in the dataGroup
+                        let locations = dataGroup['assigned-locations'] || [];
 
                         // Loop through the locations array in reverse to safely remove items
                         for (let i = locations.length - 1; i >= 0; i--) {
                             let location = locations[i];
 
-                            // console.log("tsid-datman: ", location[`tsid-datman`]);
-
                             // Check if 'tsid-datman' is null or undefined
-                            let isLocationNull = location[`tsid-datman`] == null;
+                            let isLocationNull = location?.['tsid-datman'] == null;
 
                             // If tsid-datman is null, remove the location
                             if (isLocationNull) {
-                                console.log(`Removing location with id ${location['location-id']}`);
+                                console.log(`Removing location with id ${location?.['location-id'] || 'unknown'} due to null tsid-datman`);
                                 locations.splice(i, 1); // Remove the location from the array
                             }
                         }
                     });
-                    console.log('Filtered all locations where tsid is null successfully:', combinedData);
 
-                    // Step 4: Filter out basin where there are no gages
-                    combinedData = combinedData.filter(item => item['assigned-locations'] && item['assigned-locations'].length > 0);
-                    console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
+                    console.log('Filtered all locations where tsid-datman is null successfully:', combinedData);
+
+                    // Step 4: Filter out basins where 'assigned-locations' is null or has no elements
+                    combinedData = combinedData.filter(
+                        item => Array.isArray(item['assigned-locations']) && item['assigned-locations'].length > 0
+                    );
+
+                    console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
                     // Print Table Here
                     if (hasMissingData(combinedData)) {
@@ -1248,27 +1265,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     function createTableMissing(data, type) {
         const table = document.createElement('table');
         table.id = 'customers';
-    
+
         console.log("data: ", data);
-    
+
         data.forEach(item => {
             const rows = []; // Collect valid rows for this basin
-    
+
             item['assigned-locations'].forEach(location => {
                 const datmanTsidData = location['extents-data']?.['datman']?.[0]?.['name'] || 'N/A';
                 const datmanCCountRequiredData = location['datman-c-count-value']?.[0] || 'N/A';
                 const datmanCCountData = location['datman-c-count-by-day-value'] || [];
-    
+
                 datmanCCountData.forEach(dayData => {
                     Object.entries(dayData).forEach(([date, count]) => {
                         const ratio = datmanCCountRequiredData !== 'N/A' && !isNaN(count)
                             ? (count / datmanCCountRequiredData).toFixed(2)
                             : 'N/A';
-    
+
                         // Only include rows where ratio is less than 1
                         if (ratio !== 'N/A' && ratio < 1) {
                             const row = document.createElement('tr');
-    
+
                             // Column 1: datmanTsidData with link
                             const tsidCell = document.createElement('td');
                             if (datmanTsidData !== 'N/A') {
@@ -1281,28 +1298,28 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 tsidCell.textContent = datmanTsidData;
                             }
                             row.appendChild(tsidCell);
-    
+
                             // Column 2: Date
                             const dateCell = document.createElement('td');
                             dateCell.textContent = date;
                             row.appendChild(dateCell);
-    
+
                             // Column 3: datmanCCountRequiredData
                             const requiredCell = document.createElement('td');
                             requiredCell.textContent = datmanCCountRequiredData;
                             row.appendChild(requiredCell);
-    
+
                             // Column 4: Ratio
                             const ratioCell = document.createElement('td');
                             ratioCell.textContent = ratio;
                             row.appendChild(ratioCell);
-    
+
                             rows.push(row); // Add the valid row to the collection
                         }
                     });
                 });
             });
-    
+
             // Only add the basin header and rows if there are valid rows
             if (rows.length > 0) {
                 const headerRow = document.createElement('tr');
@@ -1313,14 +1330,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                 idHeader.textContent = item.id;
                 headerRow.appendChild(idHeader);
                 table.appendChild(headerRow);
-    
+
                 // Append all collected rows
                 rows.forEach(row => table.appendChild(row));
             }
         });
-    
+
         return table;
-    }      
+    }
 
     function groupByDay(data) {
         // Create an object to store the grouped values

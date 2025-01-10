@@ -391,41 +391,54 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Step 1: Filter out locations where 'attribute' ends with '.1'
                     combinedData.forEach((dataObj, index) => {
-                        // console.log(`Processing dataObj at index ${index}:`, dataObj['assigned-locations']);
+                        // Ensure 'assigned-locations' exists and is an array
+                        if (Array.isArray(dataObj['assigned-locations'])) {
+                            // Filter out locations with 'attribute' ending in '.1'
+                            dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
+                                const attribute = location?.['attribute']?.toString();
 
-                        // Filter out locations with 'attribute' ending in '.1'
-                        dataObj['assigned-locations'] = dataObj['assigned-locations'].filter(location => {
-                            const attribute = location['attribute'].toString();
-                            if (attribute.endsWith('.1')) {
-                                // Log the location being removed
-                                // console.log(`Removing location with attribute '${attribute}' and id '${location['location-id']}' at index ${index}`);
-                                return false; // Filter out this location
-                            }
-                            return true; // Keep the location
-                        });
+                                if (attribute?.endsWith('.1')) {
+                                    console.log(
+                                        `Removing location with attribute '${attribute}' and id '${location?.['location-id'] || 'unknown'}' at index ${index}`
+                                    );
+                                    return false; // Filter out this location
+                                }
 
-                        // console.log(`Updated assigned-locations for index ${index}:`, dataObj['assigned-locations']);
+                                return true; // Keep the location
+                            });
+                        } else {
+                            console.warn(`Skipping dataObj at index ${index} as 'assigned-locations' is not a valid array.`);
+                        }
                     });
 
                     console.log('Filtered all locations ending with .1 successfully:', combinedData);
 
                     // Step 2: Filter out locations where 'location-id' doesn't match owner's 'assigned-locations'
                     combinedData.forEach(dataGroup => {
-                        // Iterate over each assigned-location in the dataGroup
-                        let locations = dataGroup['assigned-locations'];
+                        // Check if 'assigned-locations' exists in the dataGroup
+                        let locations = dataGroup['assigned-locations'] || [];
 
                         // Loop through the locations array in reverse to safely remove items
                         for (let i = locations.length - 1; i >= 0; i--) {
                             let location = locations[i];
 
-                            // Find if the current location-id exists in owner's assigned-locations
-                            let matchingOwnerLocation = location['owner']['assigned-locations'].some(ownerLoc => {
-                                return ownerLoc['location-id'] === location['location-id'];
-                            });
+                            // Check if 'owner' and 'assigned-locations' exist in the location
+                            if (location?.owner?.['assigned-locations']) {
+                                // Find if the current location-id exists in owner's assigned-locations
+                                let matchingOwnerLocation = location['owner']['assigned-locations'].some(ownerLoc =>
+                                    ownerLoc['location-id'] === location['location-id']
+                                );
 
-                            // If no match, remove the location
-                            if (!matchingOwnerLocation) {
-                                // console.log(`Removing location with id ${location['location-id']} as it does not match owner`);
+                                // If no match, remove the location
+                                if (!matchingOwnerLocation) {
+                                    console.log(`Removing location with id ${location['location-id']} as it does not match owner's assigned-locations`);
+                                    locations.splice(i, 1);
+                                }
+                            } else {
+                                // If owner or owner's assigned-locations is missing, remove the location
+                                console.warn(
+                                    `Owner or owner's assigned-locations is undefined for location-id ${location?.['location-id'] || 'unknown'}. Removing the location.`
+                                );
                                 locations.splice(i, 1);
                             }
                         }
@@ -433,35 +446,34 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all locations by matching location-id with owner successfully:', combinedData);
 
-                    // Step 3: Filter out locations where 'tsid-stage-rev' is null
+                    // Step 3: Filter out locations where 'tsid-datman' is null
                     combinedData.forEach(dataGroup => {
-                        // Iterate over each assigned-location in the dataGroup
-                        let locations = dataGroup['assigned-locations'];
+                        // Check if 'assigned-locations' exists in the dataGroup
+                        let locations = dataGroup['assigned-locations'] || [];
 
                         // Loop through the locations array in reverse to safely remove items
                         for (let i = locations.length - 1; i >= 0; i--) {
                             let location = locations[i];
 
-                            // console.log("tsid-stage-rev: ", location[`tsid-stage-rev`]);
+                            // Check if 'tsid-datman' is null or undefined
+                            let isLocationNull = location?.['tsid-datman'] == null;
 
-                            // Check if 'tsid-stage-rev' is null or undefined
-                            let isLocationNull = location[`tsid-stage-rev`] == null;
-
-                            // If tsid-stage-rev is null, remove the location
+                            // If tsid-datman is null, remove the location
                             if (isLocationNull) {
-                                console.log(`Removing location with id ${location['location-id']}`);
+                                console.log(`Removing location with id ${location?.['location-id'] || 'unknown'} due to null tsid-datman`);
                                 locations.splice(i, 1); // Remove the location from the array
                             }
                         }
                     });
 
-                    console.log('Filtered all locations where tsid is null successfully:', combinedData);
+                    console.log('Filtered all locations where tsid-datman is null successfully:', combinedData);
 
-                    // Step 4: Filter out basin where there are no gages
-                    combinedData = combinedData.filter(item => item['assigned-locations'] && item['assigned-locations'].length > 0);
+                    // Step 4: Filter out basins where 'assigned-locations' is null or has no elements
+                    combinedData = combinedData.filter(
+                        item => Array.isArray(item['assigned-locations']) && item['assigned-locations'].length > 0
+                    );
 
-                    console.log('Filtered all basin where assigned-locations is null successfully:', combinedData);
-
+                    console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
                     // Check if there are valid lastDatmanValues in the data
                     if (hasDataSpike(combinedData)) {
