@@ -11,8 +11,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     reportDiv = "alarm_datman";
     setLocationCategory = "Basins";
     setLocationGroupOwner = "Datman";
-    setTimeseriesGroup1 = "Datman";
-    setTimeseriesGroup2 = "Datman-Stage";
+    if (type === 'top10_inflow') {
+        setTimeseriesGroup1 = "Datman-Inflow";
+        setTimeseriesGroup2 = "Datman-Outflow";
+    } else if (type === 'top10_outflow') {
+        setTimeseriesGroup1 = "Datman-Outflow";
+        setTimeseriesGroup2 = "Datman-Inflow";
+    } else {
+        setTimeseriesGroup1 = "Datman";
+        setTimeseriesGroup2 = "Datman-Stage";
+    }
     setLookBackHours = subtractDaysFromDate(new Date(), 60);
 
     // Display the loading indicator for water quality alarm
@@ -483,7 +491,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
-                    if (type === "status" || type === "top10") {
+                    if (type === "status" || type === "top10" || type === "top10_inflow" || type === "top10_outflow") {
+                        console.log("type is either status, top10, top10_inflow or top10_outflow. Calling createTable. Show all data rows");
                         // Only call createTable if no valid data exists
                         const table = createTable(combinedData, type);
 
@@ -491,6 +500,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                         const container = document.getElementById(`table_container_${reportDiv}`);
                         container.appendChild(table);
                     } else {
+                        console.log("No type. check for last value");
                         // Check if there are valid lastDatmanValues in the data
                         if (hasLastValue(combinedData)) {
                             console.log("combinedData has all valid data.");
@@ -881,7 +891,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         table.id = 'customers';
 
         // Determine if we're showing all rows based on type
-        const showAllRows = type === 'status' || 'top10';
+        const showAllRows = type === 'status' || 'top10' || 'top10_inflow' || 'top10_outflow';
         const showTop10Column = type === 'top10';
 
         console.log("data: ", data);
