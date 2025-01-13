@@ -11,16 +11,22 @@ document.addEventListener('DOMContentLoaded', async function () {
     reportDiv = "alarm_datman";
     setLocationCategory = "Basins";
     setLocationGroupOwner = "Datman";
-    if (type === 'top10_inflow') {
+
+    if (typeof type_flow === 'undefined' || type_flow === null) {
+        type_flow = null;
+    }
+
+    if (type_flow === 'top10_inflow') {
         setTimeseriesGroup1 = "Datman-Inflow";
         setTimeseriesGroup2 = "Datman-Outflow";
-    } else if (type === 'top10_outflow') {
+    } else if (type_flow === 'top10_outflow') {
         setTimeseriesGroup1 = "Datman-Outflow";
         setTimeseriesGroup2 = "Datman-Inflow";
     } else {
         setTimeseriesGroup1 = "Datman";
         setTimeseriesGroup2 = "Datman-Stage";
     }
+
     setLookBackHours = subtractDaysFromDate(new Date(), 60);
 
     // Display the loading indicator for water quality alarm
@@ -32,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
     console.log("setTimeseriesGroup2: ", setTimeseriesGroup2);
     console.log("setLookBackHours: ", setLookBackHours);
+    console.log("type_flow: ", type_flow);
 
     let setBaseUrl = null;
     if (cda === "internal") {
@@ -491,10 +498,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
-                    if (type === "status" || type === "top10" || type === "top10_inflow" || type === "top10_outflow") {
+                    if (type === "status" || type === "top10" || type_flow === "top10_inflow" || type_flow === "top10_outflow") {
                         console.log("type is either status, top10, top10_inflow or top10_outflow. Calling createTable. Show all data rows");
                         // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type);
+                        const table = createTable(combinedData, type, type_flow);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
@@ -864,10 +871,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Check if datmanMaxValue or datmanMinValue exists and are valid numbers
                         if (datmanMaxValue !== null && datmanMinValue !== null) {
                             // Check if the max value exceeds 999 or the min value is less than -999
-                            if (datmanMaxValue > 999) {
+                            if (datmanMaxValue > 90000) {
                                 return true; // Return true if any spike is found
                             }
-                            if (datmanMinValue < -999) {
+                            if (datmanMinValue < -90000) {
                                 return true; // Return true if any spike is found
                             }
                         } else {
@@ -886,18 +893,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTable(data, type) {
+    function createTable(data, type, type_flow) {
         const table = document.createElement('table');
         table.id = 'customers';
 
         // Determine if we're showing all rows based on type
-        const showAllRows = type === 'status' || 'top10' || 'top10_inflow' || 'top10_outflow';
-        const showTop10Column = type === 'top10';
+        const showAllRows = type === 'status' || type === 'top10' || type_flow === 'top10_inflow' || type_flow === 'top10_outflow';
+        const showTop10Column = type === 'top10' || type_flow === 'top10_inflow' || type_flow === 'top10_outflow';
 
-        console.log("data: ", data);
+        // console.log("data: ", data);
 
         data.forEach(item => {
             let shouldPrintHeader = false;
+
+            // console.log(item.id);
+            // Sort data by item.id before proceeding
+            data.sort((a, b) => a.id.localeCompare(b.id));
 
             // Process each assigned location
             item['assigned-locations'].forEach(location => {
@@ -1029,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const latest = new Date(latestTime).getFullYear();
                                 const earliest2 = new Date(earliestTime2).getFullYear();
                                 const latest2 = new Date(latestTime2).getFullYear();
-                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
+                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
                                 upArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const upArrow = document.createElement('img');
@@ -1038,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 upArrowLink.appendChild(upArrow);
 
                                 const downArrowLink = document.createElement('a');
-                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=top10&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
+                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
                                 downArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const downArrow = document.createElement('img');

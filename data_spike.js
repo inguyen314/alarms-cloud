@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async function () {
+    // Delay execution for 30 seconds (30000 milliseconds)
+    await new Promise(resolve => setTimeout(resolve, 50000));
+
     const currentDateTime = new Date();
 
     let setLocationCategory = null;

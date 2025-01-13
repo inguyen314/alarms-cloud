@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async function () {
+    // Delay execution for 30 seconds (30000 milliseconds)
+    await new Promise(resolve => setTimeout(resolve, 30000));
+    
     // const YesterdayDateTimeAt2359 = new Date();
     const YesterdayDateTimeAt2359 = getYesterdayAt2359();
 
@@ -8,10 +11,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackDays = null;
     let reportDiv = null;
 
-    console.log("********************* missing_data Alarm **********************************");
-    reportDiv = "alarm_missing_data"; // alarm_missing_data
+    console.log("********************* alarm_missing_data **********************************");
+    reportDiv = "alarm_missing_data";
     setLocationCategory = "Basins";
-    setLocationGroupOwner = "MVS";
+    setLocationGroupOwner = "Datman";
     setTimeseriesGroup1 = "Stage";
     // setLookBackDays = subtractHoursFromDate(new Date(), 48);
     setLookBackDays = getLookBackDateTime(77);
@@ -41,12 +44,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
-    const riverMileMap = new Map();
 
     // Initialize arrays for storing promises
     const ownerPromises = [];
     const datmanTsidPromises = [];
-    // const riverMilePromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -105,47 +106,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // If assigned locations exist, fetch metadata and time-series data
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
-
-                                    // if ("river-mile" === "river-mile") {
-                                    //     // Fetch the JSON file
-                                    //     riverMilePromises.push(
-                                    //         fetch('json/gage_control_official.json')
-                                    //             .then(response => {
-                                    //                 if (!response.ok) {
-                                    //                     throw new Error(`Network response was not ok: ${response.statusText}`);
-                                    //                 }
-                                    //                 return response.json();
-                                    //             })
-                                    //             .then(riverMilesJson => {
-                                    //                 // Loop through each basin in the JSON
-                                    //                 for (const basin in riverMilesJson) {
-                                    //                     const locations = riverMilesJson[basin];
-
-                                    //                     for (const loc in locations) {
-                                    //                         const ownerData = locations[loc];
-                                    //                         // console.log("ownerData: ", ownerData);
-
-                                    //                         // Retrieve river mile and other data
-                                    //                         const riverMile = ownerData.river_mile_hard_coded;
-
-                                    //                         // Create an output object using the location name as ID
-                                    //                         const outputData = {
-                                    //                             locationId: loc, // Using location name as ID
-                                    //                             basin: basin,
-                                    //                             riverMile: riverMile
-                                    //                         };
-
-                                    //                         // console.log("Output Data:", outputData);
-                                    //                         riverMileMap.set(loc, ownerData); // Store the data in the map
-                                    //                     }
-                                    //                 }
-                                    //             })
-                                    //             .catch(error => {
-                                    //                 console.error('Problem with the fetch operation:', error);
-                                    //             })
-                                    //     )
-                                    // }
-
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
                                     // console.log("ownerApiUrl: ", ownerApiUrl);
@@ -207,16 +167,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             Promise.all(apiPromises)
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
-                // .then(() => Promise.all(riverMilePromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
-                                // const riverMileMapData = riverMileMap.get(loc['location-id']);
-                                // if (riverMileMapData) {
-                                //     loc['river-mile'] = riverMileMapData;
-                                // }
-
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
                                 if (ownerMapData) {
@@ -1399,18 +1353,32 @@ document.addEventListener('DOMContentLoaded', async function () {
     function getCCount(data) {
         // Extract the interval from the name property
         const name = data.name || "";
-        const intervalMatch = name.match(/\.([^\.]+)Minutes\./);
-        const interval = intervalMatch ? intervalMatch[1] : null;
 
-        // Determine the c_count based on the interval
-        switch (interval) {
-            case "15":
-                return 96;
-            case "30":
-                return 48;
-            default:
-                return 909;
+        // Check for intervals in minutes
+        let intervalMatch = name.match(/\.([^\.]+)Minutes\./);
+        if (intervalMatch) {
+            const interval = intervalMatch[1];
+            switch (interval) {
+                case "15":
+                    return 96;
+                case "30":
+                    return 48;
+                default:
+                    return 909;
+            }
         }
+
+        // Check for intervals in hours
+        intervalMatch = name.match(/\.([^\.]+)Hour\./);
+        if (intervalMatch) {
+            const interval = intervalMatch[1];
+            if (interval === "1") {
+                return 24;
+            }
+        }
+
+        // Default case
+        return 909;
     }
 
     function getCCountByDay(data) {

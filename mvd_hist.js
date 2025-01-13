@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async function () {
+    // Delay execution for 30 seconds (30000 milliseconds)
+    await new Promise(resolve => setTimeout(resolve, 40000));
+    
     const currentDateTime = new Date();
 
     let setLocationCategory = null;
@@ -8,9 +11,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     let reportDiv = null;
 
     console.log("***********************************************************************");
-    console.log("********************* Mvd Hist Alarm **********************************");
+    console.log("********************* alarm_mvd_hist **********************************");
     console.log("***********************************************************************");
-    reportDiv = "alarm_mvd_hist"; // alarm_mvd_hist
+    reportDiv = "alarm_mvd_hist";
     setLocationCategory = "Mvd-Hist";
     setLocationGroupOwner = "MVD";
     setTimeseriesGroup1 = "Mvd-Hist";
