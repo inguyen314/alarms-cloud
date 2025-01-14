@@ -906,7 +906,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         data.forEach(item => {
             let shouldPrintHeader = false;
 
-            // console.log(item.id);
             // Sort data by item.id before proceeding
             data.sort((a, b) => a.id.localeCompare(b.id));
 
