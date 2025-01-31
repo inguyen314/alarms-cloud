@@ -922,8 +922,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                         const tsid = datmanEntry1.name; // First TSID
                         const tsid_2 = datmanEntry2.name; // Second TSID
 
-                        const earliestTime = datmanEntry1.earliestTime;
-                        const latestTime = datmanEntry1.latestTime;
+                        const loc = datmanEntry1.name.split('.')[0];
+
+                        const earliestTime = datmanEntry1.earliestTime.split(" ")[0];
+                        const latestTime = datmanEntry1.latestTime.split(" ")[0];
                         const earliestTime2 = datmanEntry2.earliestTime;
                         const latestTime2 = datmanEntry2.latestTime;
 
@@ -964,7 +966,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Create a link to wrap around the value
                             const link = document.createElement('a');
-                            link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
+                            link.href = `../chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=90`;
                             link.target = '_blank'; // Open link in a new tab
 
                             // Convert the value to a number and apply toFixed(2) if it's numeric
@@ -1039,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 const latest = new Date(latestTime).getFullYear();
                                 const earliest2 = new Date(earliestTime2).getFullYear();
                                 const latest2 = new Date(latestTime2).getFullYear();
-                                upArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
+                                upArrowLink.href = `../top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=max`;
                                 upArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const upArrow = document.createElement('img');
@@ -1048,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 upArrowLink.appendChild(upArrow);
 
                                 const downArrowLink = document.createElement('a');
-                                downArrowLink.href = `https://wm.mvs.ds.usace.army.mil/apps/top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
+                                downArrowLink.href = `../top10/index.html?office=MVS&type=${type}&type_flow=${type_flow}&gage=${tsid}&gage_2=${tsid_2}&begin=${earliest}&end=${latest}&begin_2=${earliest}&end_2=${latest2}&top10=min`;
                                 downArrowLink.target = '_blank'; // Open link in a new tab
 
                                 const downArrow = document.createElement('img');
@@ -1060,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 top10Container.appendChild(downArrowLink);
                             }
 
-                            const cells = [tsid, link, earliestTime, latestTime];
+                            const cells = [loc, link, earliestTime, latestTime];
                             if (showTop10Column) cells.push(top10Container);
 
                             createDataRow(cells);

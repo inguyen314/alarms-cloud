@@ -1,7 +1,30 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    // Delay execution for 30 seconds (30000 milliseconds)
-    await new Promise(resolve => setTimeout(resolve, 40000));
-    
+    const progressBar = document.getElementById('progress');
+    const delay = 50000; // 40 seconds
+    const interval = 100; // Update every 100ms
+    const totalSteps = delay / interval;
+    let currentStep = 0;
+
+    const updateProgressBar = () => {
+        currentStep++;
+        const progress = (currentStep / totalSteps) * 100;
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${Math.round(progress)}%`;
+
+        if (currentStep < totalSteps) {
+            setTimeout(updateProgressBar, interval);
+        }
+    };
+
+    // Start the progress bar
+    updateProgressBar();
+
+    // Delay execution for 40 seconds
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    // After the delay, you can continue with your code
+    console.log("50 seconds have passed!");
+
     const currentDateTime = new Date();
 
     let setLocationCategory = null;
