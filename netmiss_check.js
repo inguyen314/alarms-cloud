@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async function () {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     // Display the loading indicator
     const loadingIndicator = document.getElementById('loading_alarm_netmiss_check');
     loadingIndicator.style.display = 'block';
