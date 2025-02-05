@@ -1295,5 +1295,5 @@ document.addEventListener('DOMContentLoaded', async function () {
 // ============ How to add a datman gage
 // ===============================================================
 // 1. Add location to "Basins" category
-// 2. Add location to "MVS/Datman"
-// 3. Add Time Series Groups. "Stage", "Datman", and "Datman-Stage".
+// 2. Add/Remove location to "MVS/Datman"
+// 3. Add Time Series Groups. "Stage", "Datman", and "Datman-Stage"
