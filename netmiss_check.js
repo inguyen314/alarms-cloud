@@ -10,11 +10,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setBaseUrl = null;
     if (cda === "internal") {
         setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
-        console.log("setBaseUrl: ", setBaseUrl);
+    } else if (cda === "internal-coop") {
+        setBaseUrl = `https://wm-${office.toLowerCase()}coop.mvk.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
-        console.log("setBaseUrl: ", setBaseUrl);
     }
+    // console.log("setBaseUrl: ", setBaseUrl);
 
     const apiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
     // console.log("apiUrl: ", apiUrl);
@@ -403,7 +404,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 // Create a link for stageValue
                 const stageLink = document.createElement('a');
-                stageLink.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=4`; // URL with location name
+                stageLink.href = `mvs/chart/index.html?office=MVS&cwms_ts_id=${location[`tsid-netmiss`][`assigned-time-series`][0][`timeseries-id`]}&cwms_ts_id_2=${location[`tsid-netmiss`][`assigned-time-series`][1][`timeseries-id`]}&lookforward=4`; // URL with location name
                 stageLink.textContent = stageValue; // Displayed text
                 stageLink.target = '_blank'; // Opens link in a new tab
 

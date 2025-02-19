@@ -45,11 +45,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setBaseUrl = null;
     if (cda === "internal") {
         setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
-        // console.log("setBaseUrl: ", setBaseUrl);
+    } else if (cda === "internal-coop") {
+        setBaseUrl = `https://wm-${office.toLowerCase()}coop.mvk.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
-        // console.log("setBaseUrl: ", setBaseUrl);
     }
+    // console.log("setBaseUrl: ", setBaseUrl);
 
     // Define the URL to fetch location groups based on category
     const categoryApiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setLocationCategory}`;
@@ -526,7 +527,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                 // Create an img element
                                 const img = document.createElement('img');
-                                img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                                img.src = '/mvs/alarms/images/passed.png'; // Set the image source
                                 img.alt = 'Process Completed'; // Optional alt text for accessibility
                                 img.style.width = '50px'; // Optional: set the image width
                                 img.style.height = '50px'; // Optional: set the image height
@@ -1253,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // First column (tsid) as a link
             const nameCell = document.createElement('td');
             const link = document.createElement('a');
-            link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
+            link.href = `../chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
             link.target = '_blank'; // Open link in a new tab
             link.textContent = tsid;
             nameCell.appendChild(link);

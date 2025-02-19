@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create an img element
                         const img = document.createElement('img');
-                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                        img.src = '/mvs/alarms/images/passed.png'; // Set the image source
                         img.alt = 'Process Completed'; // Optional alt text for accessibility
                         img.style.width = '50px'; // Optional: set the image width
                         img.style.height = '50px'; // Optional: set the image height
@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create the link for tsid
                         const link = document.createElement('a');
-                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
+                        link.href = `mvs/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
                         link.target = '_blank'; // Open link in a new tab
                         link.textContent = tsid;
 
@@ -1179,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             // First column (tsid) as a link
             const nameCell = document.createElement('td');
             const link = document.createElement('a');
-            link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
+            link.href = `mvs/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
             link.target = '_blank'; // Open link in a new tab
             link.textContent = tsid;
             nameCell.appendChild(link);
@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const tsidCell = document.createElement('td');
                             if (datmanTsidData !== 'N/A') {
                                 const link = document.createElement('a');
-                                link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${encodeURIComponent(datmanTsidData)}&cda=internal&lookback=7`;
+                                link.href = `mvs/chart/index.html?office=MVS&cwms_ts_id=${encodeURIComponent(datmanTsidData)}&cda=internal&lookback=7`;
                                 link.target = '_blank'; // Open link in a new tab
                                 link.textContent = datmanTsidData;
                                 tsidCell.appendChild(link);
