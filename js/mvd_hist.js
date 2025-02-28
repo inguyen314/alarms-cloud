@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil/${office.toLowerCase()}-data/`;
         // console.log("setBaseUrl: ", setBaseUrl);
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
@@ -41,17 +41,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     // console.log("categoryApiUrl: ", categoryApiUrl);
 
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
-    const metadataMap = new Map();
-    const floodMap = new Map();
-    const lwrpMap = new Map();
     const ownerMap = new Map();
     const tsidDatmanMap = new Map();
-    const riverMileMap = new Map();
 
     // Initialize arrays for storing promises
-    const metadataPromises = [];
-    const floodPromises = [];
-    const lwrpPromises = [];
     const ownerPromises = [];
     const datmanTsidPromises = [];
     // const riverMilePromises = [];
@@ -113,131 +106,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                             // If assigned locations exist, fetch metadata and time-series data
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
-
-                                    // if ("river-mile" === "river-mile") {
-                                    //     // Fetch the JSON file
-                                    //     riverMilePromises.push(
-                                    //         fetch('json/gage_control_official.json')
-                                    //             .then(response => {
-                                    //                 if (!response.ok) {
-                                    //                     throw new Error(`Network response was not ok: ${response.statusText}`);
-                                    //                 }
-                                    //                 return response.json();
-                                    //             })
-                                    //             .then(riverMilesJson => {
-                                    //                 // Loop through each basin in the JSON
-                                    //                 for (const basin in riverMilesJson) {
-                                    //                     const locations = riverMilesJson[basin];
-
-                                    //                     for (const loc in locations) {
-                                    //                         const ownerData = locations[loc];
-                                    //                         // console.log("ownerData: ", ownerData);
-
-                                    //                         // Retrieve river mile and other data
-                                    //                         const riverMile = ownerData.river_mile_hard_coded;
-
-                                    //                         // Create an output object using the location name as ID
-                                    //                         const outputData = {
-                                    //                             locationId: loc, // Using location name as ID
-                                    //                             basin: basin,
-                                    //                             riverMile: riverMile
-                                    //                         };
-
-                                    //                         // console.log("Output Data:", outputData);
-                                    //                         riverMileMap.set(loc, ownerData); // Store the data in the map
-                                    //                     }
-                                    //                 }
-                                    //             })
-                                    //             .catch(error => {
-                                    //                 console.error('Problem with the fetch operation:', error);
-                                    //             })
-                                    //     )
-                                    // }
-
-                                    // // Fetch metadata for each location
-                                    // const locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
-                                    // // console.log("locApiUrl: ", locApiUrl);
-                                    // metadataPromises.push(
-                                    //     fetch(locApiUrl)
-                                    //         .then(response => {
-                                    //             if (response.status === 404) {
-                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                    //                 return null; // Skip if not found
-                                    //             }
-                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                    //             return response.json();
-                                    //         })
-                                    //         .then(locData => {
-                                    //             if (locData) {
-                                    //                 metadataMap.set(loc['location-id'], locData);
-                                    //             }
-                                    //         })
-                                    //         .catch(error => {
-                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                    //         })
-                                    // );
-
-
-
-                                    // // Fetch flood location level for each location
-                                    // const levelIdFlood = loc['location-id'] + ".Stage.Inst.0.Flood";
-                                    // // console.log("levelIdFlood: ", levelIdFlood);
-
-                                    // const levelIdEffectiveDate = "2024-01-01T08:00:00";
-                                    // // console.log("levelIdEffectiveDate: ", levelIdEffectiveDate);
-
-                                    // const floodApiUrl = setBaseUrl + `levels/${levelIdFlood}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
-                                    // // console.log("floodApiUrl: ", floodApiUrl);
-                                    // floodPromises.push(
-                                    //     fetch(floodApiUrl)
-                                    //         .then(response => {
-                                    //             if (response.status === 404) {
-                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                    //                 return null; // Skip if not found
-                                    //             }
-                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                    //             return response.json();
-                                    //         })
-                                    //         .then(floodData => {
-                                    //             if (floodData) {
-                                    //                 floodMap.set(loc['location-id'], floodData);
-                                    //             }
-                                    //         })
-                                    //         .catch(error => {
-                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                    //         })
-                                    // );
-
-
-
-                                    // // Fetch lwrp location level for each location
-                                    // const levelIdLwrp = loc['location-id'] + ".Stage.Inst.0.LWRP";
-                                    // // console.log("levelIdFlood: ", levelIdFlood);
-
-                                    // const lwrpApiUrl = setBaseUrl + `levels/${levelIdLwrp}?office=${office}&effective-date=${levelIdEffectiveDate}&unit=ft`;
-                                    // // console.log("lwrpApiUrl: ", lwrpApiUrl);
-                                    // lwrpPromises.push(
-                                    //     fetch(lwrpApiUrl)
-                                    //         .then(response => {
-                                    //             if (response.status === 404) {
-                                    //                 console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                    //                 return null; // Skip if not found
-                                    //             }
-                                    //             if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-                                    //             return response.json();
-                                    //         })
-                                    //         .then(lwrpData => {
-                                    //             if (lwrpData) {
-                                    //                 lwrpMap.set(loc['location-id'], lwrpData);
-                                    //             }
-                                    //         })
-                                    //         .catch(error => {
-                                    //             console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                    //         })
-                                    // );
-
-
-
                                     // Fetch owner for each location
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
                                     // console.log("ownerApiUrl: ", ownerApiUrl);
@@ -297,39 +165,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // Process all the API calls and store the fetched data
             Promise.all(apiPromises)
-                // .then(() => Promise.all(metadataPromises))
-                // .then(() => Promise.all(floodPromises))
-                // .then(() => Promise.all(lwrpPromises))
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(datmanTsidPromises))
-                // .then(() => Promise.all(riverMilePromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
                             basinData['assigned-locations'].forEach(loc => {
-                                // Add metadata, TSID, and last-value data to the location object
-
-                                // // Add metadata to json
-                                // const metadataMapData = metadataMap.get(loc['location-id']);
-                                // if (metadataMapData) {
-                                //     loc['metadata'] = metadataMapData;
-                                // }
-
-
-                                // // Add flood to json
-                                // const floodMapData = floodMap.get(loc['location-id']);
-                                // loc['flood'] = floodMapData !== undefined ? floodMapData : null;
-
-
-                                // // Add lwrp to json
-                                // const lwrpMapData = lwrpMap.get(loc['location-id']);
-                                // loc['lwrp'] = lwrpMapData !== undefined ? lwrpMapData : null;
-
-                                // const riverMileMapData = riverMileMap.get(loc['location-id']);
-                                // if (riverMileMapData) {
-                                //     loc['river-mile'] = riverMileMapData;
-                                // }
-
                                 // Add owner to json
                                 const ownerMapData = ownerMap.get(loc['location-id']);
                                 if (ownerMapData) {
@@ -465,7 +306,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // Additional API call for extents data
                             const timeSeriesDataExtentsApiCall = async (type) => {
-                                const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}`;
+                                const extentsApiUrl = setBaseUrl + `catalog/TIMESERIES?page-size=5000&office=${office}&timeseries-group-like=${setTimeseriesGroup1}`;
                                 // console.log('extentsApiUrl:', extentsApiUrl);
 
                                 try {
@@ -560,6 +401,32 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('All combinedData data fetched successfully:', combinedData);
 
+                    const tempLocRemove = ["Barkley Dam-Cumberland", "Anoka-Mississippi", "Bismarck-Missouri", "Grand Rapids-Pokegama Lk", "Kansas City-Missouri", "Kentucky Dam-Tennessee", "Savage-Minnesota", "Sidney-Yellowstone", "Sioux City-Missouri", "St Paul-Mississippi", "Watson-Lac Qui Parle Res"];
+
+                    function removeLocations(data) {
+                        data.forEach(basin => {
+                            // Top-level assigned-locations
+                            if (basin['assigned-locations']) {
+                                basin['assigned-locations'] = basin['assigned-locations'].filter(loc => 
+                                    !tempLocRemove.includes(loc['location-id'])
+                                );
+                    
+                                // If any assigned-location itself has nested "owner" with assigned-locations
+                                basin['assigned-locations'].forEach(loc => {
+                                    if (loc.owner && loc.owner['assigned-locations']) {
+                                        loc.owner['assigned-locations'] = loc.owner['assigned-locations'].filter(nestedLoc =>
+                                            !tempLocRemove.includes(nestedLoc['location-id'])
+                                        );
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    removeLocations(combinedData);
+
+                    console.log('All combinedData data fetched successfully and after run tempLocRemove:', combinedData);
+
                     // Step 1: Filter out locations where 'attribute' ends with '.1'
                     combinedData.forEach((dataObj, index) => {
                         // Ensure 'assigned-locations' exists and is an array
@@ -646,14 +513,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
-                    if (type === "status") {
-                        // Only call createTable if no valid data exists
-                        const table = createTable(combinedData, type);
-
-                        // Append the table to the specified container
-                        const container = document.getElementById(`table_container_${reportDiv}`);
-                        container.appendChild(table);
-                    } else {
                         // Check if there are valid lastDatmanValues in the data
                         if (hasLastValue(combinedData)) {
                             console.log("combinedData has all valid data.");
@@ -689,8 +548,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                             const container = document.getElementById(`table_container_${reportDiv}`);
                             container.appendChild(table);
                         }
-                    }
-
+                    
                     loadingIndicator.style.display = 'none';
                 })
                 .catch(error => {
@@ -712,10 +570,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         );
     }
 
-    function subtractHoursFromDate(date, hoursToSubtract) {
-        return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-    }
-
     function subtractDaysFromDate(date, daysToSubtract) {
         return new Date(date.getTime() - (daysToSubtract * 24 * 60 * 60 * 1000));
     }
@@ -732,50 +586,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     const reorderByAttribute = (data) => {
         data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-    };
-
-    const formatTime = (date) => {
-        const pad = (num) => (num < 10 ? '0' + num : num);
-        return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    };
-
-    const findValuesAtTimes = (data) => {
-        const result = [];
-        const currentDate = new Date();
-
-        // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-        const timesToCheck = [
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-        ];
-
-        const foundValues = [];
-
-        // Iterate over the values in the provided data
-        const values = data.values;
-
-        // Check for each time in the order of preference
-        timesToCheck.forEach((time) => {
-            // Format the date-time to match the format in the data
-            const formattedTime = formatTime(time);
-            // console.log(formattedTime);
-
-            const entry = values.find(v => v[0] === formattedTime);
-            if (entry) {
-                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-            } else {
-                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-            }
-        });
-
-        // Push the result for this data entry
-        result.push({
-            name: data.name,
-            values: foundValues // This will contain the array of { time, value } objects
-        });
-
-        return result;
     };
 
     function getLastNonNullValue(data, tsid) {
@@ -932,62 +742,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    function hasDataSpikeInApiDataArray(data) {
-        // Iterate through each key in the data object
-        for (const locationIndex in data) {
-            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
-                const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
-                const assignedLocations = item['assigned-locations'];
-                // Check if assigned-locations is an object
-                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    // console.log('No assigned-locations found in basin:', item);
-                    continue; // Skip to the next basin
-                }
-
-                // Iterate through each location in assigned-locations
-                for (const locationName in assignedLocations) {
-                    const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
-                    const datmanApiData = location['datman-api-data'];
-
-                    // Check if 'datman-api-data' exists and has a 'values' array
-                    if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
-                        let maxValue = -Infinity; // Initialize to a very low value
-                        let minValue = Infinity; // Initialize to a very high value
-
-                        // Iterate through the 'values' array and find the max and min values
-                        datmanApiData[0]['values'].forEach(valueEntry => {
-                            const currentValue = parseFloat(valueEntry[1]);
-                            if (!isNaN(currentValue)) {
-                                maxValue = Math.max(maxValue, currentValue);
-                                minValue = Math.min(minValue, currentValue);
-                            }
-                        });
-
-                        // Log the max and min values for the location
-                        // console.log(`Max value for location ${locationName}:`, maxValue);
-                        // console.log(`Min value for location ${locationName}:`, minValue);
-
-                        // Check if the max value exceeds 999 or the min value is less than -999
-                        if (maxValue > 999 || minValue < -999) {
-                            // console.log(`Data spike detected in location ${locationName}: max = ${maxValue}, min = ${minValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                    } else {
-                        console.log(`No valid 'datman-api-data' found in location ${locationName}.`);
-                    }
-                }
-            }
-        }
-
-        // Return false if no data spikes were found
-        console.log('No data spikes detected in any location.');
-        return false;
-    }
-
     function hasDataSpike(data) {
         // Iterate through each key in the data object
         for (const locationIndex in data) {
@@ -1018,10 +772,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Check if datmanMaxValue or datmanMinValue exists and are valid numbers
                         if (datmanMaxValue !== null && datmanMinValue !== null) {
                             // Check if the max value exceeds 999 or the min value is less than -999
-                            if (datmanMaxValue > 999) {
+                            if (datmanMaxValue > 1999) {
                                 return true; // Return true if any spike is found
                             }
-                            if (datmanMinValue < -999) {
+                            if (datmanMinValue < -1999) {
                                 return true; // Return true if any spike is found
                             }
                         } else {
@@ -1129,76 +883,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                         createDataRow([link, valueSpan, earliestTime, latestTime]);
                     }
                 });
-            });
-        });
-
-        return table;
-    }
-
-    function createTableStatus(data) {
-        const table = document.createElement('table');
-        table.id = 'customers';
-
-        data.forEach(item => {
-            // Create header row for the item's ID
-            const headerRow = document.createElement('tr');
-            const idHeader = document.createElement('th');
-            idHeader.colSpan = 4;
-            // Apply styles
-            idHeader.style.backgroundColor = 'darkblue';
-            idHeader.style.color = 'white';
-            idHeader.textContent = item.id;
-            headerRow.appendChild(idHeader);
-            table.appendChild(headerRow);
-
-            // Create subheader row for "Time Series", "Value", "Earliest Time", "Latest Time"
-            const subHeaderRow = document.createElement('tr');
-            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
-                const td = document.createElement('td');
-                td.textContent = headerText;
-                subHeaderRow.appendChild(td);
-            });
-            table.appendChild(subHeaderRow);
-
-            // Process each assigned location
-            item['assigned-locations'].forEach(location => {
-                const datmanData = location['extents-data']?.['datman'] || [];
-
-                const createDataRow = (cells) => {
-                    const dataRow = document.createElement('tr');
-                    cells.forEach(cellValue => {
-                        const cell = document.createElement('td');
-                        if (cellValue instanceof HTMLElement) {
-                            cell.appendChild(cellValue);
-                        } else {
-                            cell.textContent = cellValue;
-                        }
-                        dataRow.appendChild(cell);
-                    });
-                    table.appendChild(dataRow);
-                };
-
-                datmanData.forEach(datmanEntry => {
-                    const tsid = datmanEntry.name;
-                    const earliestTime = datmanEntry.earliestTime;
-                    const latestTime = datmanEntry.latestTime;
-
-                    const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-                    const valueSpan = document.createElement('span');
-
-                    if (lastDatmanValue.value === 'N/A' || isNaN(lastDatmanValue.value)) {
-                        valueSpan.classList.add('blinking-text');
-                        valueSpan.textContent = 'N/A';
-                    } else {
-                        valueSpan.textContent = parseFloat(lastDatmanValue.value).toFixed(2);
-                    }
-
-                    createDataRow([tsid, valueSpan, earliestTime, latestTime]);
-                });
-
-                if (datmanData.length === 0) {
-                    createDataRow(['No Data Available']);
-                }
             });
         });
 
