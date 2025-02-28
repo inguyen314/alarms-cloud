@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                         // Create an img element
                         const img = document.createElement('img');
-                        img.src = '/apps/alarms/images/passed.png'; // Set the image source
+                        img.src = '/mvs/alarms/images/passed.png'; // Set the image source
                         img.alt = 'Process Completed'; // Optional alt text for accessibility
                         img.style.width = '50px'; // Optional: set the image width
                         img.style.height = '50px'; // Optional: set the image height
