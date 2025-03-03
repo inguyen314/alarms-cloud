@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLocationCategory = null;
     let setLocationGroupOwner = null;
     let setTimeseriesGroup1 = null;
+    let setTimeseriesGroup2 = null;
     let setLookBackHours = null;
     let reportDiv = null;
 
@@ -14,7 +15,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     setLocationCategory = "Basins";
     setLocationGroupOwner = "MVS";
     setTimeseriesGroup1 = "Stage";
-    setLookBackHours = subtractHoursFromDate(new Date(), 2);
+    setTimeseriesGroup2 = "Datman";
+    setLookBackHours = subtractHoursFromDate(new Date(), 96);
 
 
     // Display the loading indicator for water quality alarm
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log("setLocationCategory: ", setLocationCategory);
     console.log("setLocationGroupOwner: ", setLocationGroupOwner);
     console.log("setTimeseriesGroup1: ", setTimeseriesGroup1);
+    console.log("setTimeseriesGroup2: ", setTimeseriesGroup2);
     console.log("setLookBackHours: ", setLookBackHours);
 
     let setBaseUrl = null;
@@ -42,10 +45,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize maps to store metadata and time-series ID (TSID) data for various parameters
     const ownerMap = new Map();
     const tsidStageRevMap = new Map();
+    const tsidDatmanMap = new Map();
 
     // Initialize arrays for storing promises
     const ownerPromises = [];
     const stageRevTsidPromises = [];
+    const datmanTsidPromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -105,6 +110,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                             if (getBasin['assigned-locations']) {
                                 getBasin['assigned-locations'].forEach(loc => {
                                     let ownerApiUrl = setBaseUrl + `location/group/${setLocationGroupOwner}?office=${office}&category-id=${office}`;
+                                    console.log("ownerApiUrl: ", ownerApiUrl);
+
                                     if (ownerApiUrl) {
                                         ownerPromises.push(
                                             fetch(ownerApiUrl)
@@ -128,7 +135,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 })
                                         );
                                     }
-                                    // Fetch datman TSID data
+
+                                    // Fetch stage TSID data
                                     const tsidStageRevApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup1}?office=${office}&category-id=${loc['location-id']}`;
                                     // console.log("tsidStageRevApiUrl: ", tsidStageRevApiUrl);
                                     stageRevTsidPromises.push(
@@ -147,6 +155,26 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 console.error(`Problem with the fetch operation for stage TSID data at ${tsidStageRevApiUrl}:`, error);
                                             })
                                     );
+
+                                    // Fetch datman TSID data
+                                    const tsidDatmanApiUrl = setBaseUrl + `timeseries/group/${setTimeseriesGroup2}?office=${office}&category-id=${loc['location-id']}`;
+                                    // console.log("tsidDatmanApiUrl: ", tsidDatmanApiUrl);
+                                    datmanTsidPromises.push(
+                                        fetch(tsidDatmanApiUrl)
+                                            .then(response => {
+                                                if (response.status === 404) return null;
+                                                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                return response.json();
+                                            })
+                                            .then(tsidDatmanData => {
+                                                if (tsidDatmanData) {
+                                                    tsidDatmanMap.set(loc['location-id'], tsidDatmanData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error(`Problem with the fetch operation for stage TSID data at ${tsidDatmanApiUrl}:`, error);
+                                            })
+                                    );
                                 });
                             }
                         })
@@ -160,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             Promise.all(apiPromises)
                 .then(() => Promise.all(ownerPromises))
                 .then(() => Promise.all(stageRevTsidPromises))
+                .then(() => Promise.all(datmanTsidPromises))
                 .then(() => {
                     combinedData.forEach(basinData => {
                         if (basinData['assigned-locations']) {
@@ -177,6 +206,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     loc['tsid-stage-rev'] = tsidStageRevMapData;
                                 } else {
                                     loc['tsid-stage-rev'] = null;
+                                }
+
+                                // Add datman to json
+                                const tsidDatmanMapData = tsidDatmanMap.get(loc['location-id']);
+                                if (tsidDatmanMapData) {
+                                    reorderByAttribute(tsidDatmanMapData);
+                                    loc['tsid-datman'] = tsidDatmanMapData;
+                                } else {
+                                    loc['tsid-datman'] = null;
                                 }
 
                                 // Initialize empty arrays to hold API and last-value data for various parameters
@@ -402,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                 if (attribute?.endsWith('.1')) {
                                     console.log(
-                                        `Removing location with attribute '${attribute}' and id '${location?.['location-id'] || 'unknown'}' at index ${index}`
+                                        // `Removing location with attribute '${attribute}' and id '${location?.['location-id'] || 'unknown'}' at index ${index}`
                                     );
                                     return false; // Filter out this location
                                 }
@@ -434,7 +472,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                 // If no match, remove the location
                                 if (!matchingOwnerLocation) {
-                                    console.log(`Removing location with id ${location['location-id']} as it does not match owner's assigned-locations`);
+                                    // console.log(`Removing location with id ${location['location-id']} as it does not match owner's assigned-locations`);
                                     locations.splice(i, 1);
                                 }
                             } else {
@@ -463,7 +501,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                             // If tsid-datman is null, remove the location
                             if (isLocationNull) {
-                                console.log(`Removing location with id ${location?.['location-id'] || 'unknown'} due to null tsid-datman`);
+                                // console.log(`Removing location with id ${location?.['location-id'] || 'unknown'} due to null tsid-datman`);
                                 locations.splice(i, 1); // Remove the location from the array
                             }
                         }
@@ -745,101 +783,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // Return false if no data spikes were found
         return false;
-    }
-
-    function createTable(data, type) {
-        const table = document.createElement('table');
-        table.id = 'customers';
-
-        // Determine if we're showing all rows based on type
-        const showAllRows = type === 'status';
-
-        data.forEach(item => {
-            let shouldPrintHeader = false;
-
-            // Process each assigned location
-            item['assigned-locations'].forEach(location => {
-                const datmanData = location['extents-data']?.['stage-rev'] || [];
-
-                // Process each datmanEntry
-                datmanData.forEach(datmanEntry => {
-                    const tsid = datmanEntry.name;
-                    const earliestTime = datmanEntry.earliestTime;
-                    const latestTime = datmanEntry.latestTime;
-
-                    // Check if 'stage-rev-last-value' and corresponding entry exist
-                    const lastDatmanValue = location['stage-rev-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-
-                    // If type is "status", show all rows. Otherwise, show only when lastDatmanValue is 'N/A'
-                    const shouldDisplayRow = showAllRows || (lastDatmanValue.value === 'N/A');
-
-                    if (shouldDisplayRow) {
-                        // Only print the header once if needed
-                        if (!shouldPrintHeader) {
-                            // Create header row for the item's ID
-                            const headerRow = document.createElement('tr');
-                            const idHeader = document.createElement('th');
-                            idHeader.colSpan = 4;
-                            idHeader.style.backgroundColor = 'darkblue';
-                            idHeader.style.color = 'white';
-                            idHeader.textContent = item.id;
-                            headerRow.appendChild(idHeader);
-                            table.appendChild(headerRow);
-
-                            // Create subheader row
-                            const subHeaderRow = document.createElement('tr');
-                            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
-                                const td = document.createElement('td');
-                                td.textContent = headerText;
-                                subHeaderRow.appendChild(td);
-                            });
-                            table.appendChild(subHeaderRow);
-
-                            shouldPrintHeader = true;
-                        }
-
-                        // Create the link for tsid
-                        const link = document.createElement('a');
-                        link.href = `https://wm.mvs.ds.usace.army.mil/apps/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`;
-                        link.target = '_blank'; // Open link in a new tab
-                        link.textContent = tsid;
-
-                        // Convert the value to a number and apply toFixed(2) if it's numeric
-                        let valueDisplay;
-                        if (lastDatmanValue.value === 'N/A') {
-                            valueDisplay = 'N/A';
-                        } else {
-                            const numericValue = Number(lastDatmanValue.value);
-                            valueDisplay = isNaN(numericValue) ? 'N/A' : numericValue.toFixed(2);
-                        }
-
-                        const valueSpan = document.createElement('span');
-                        if (lastDatmanValue.value === 'N/A') {
-                            valueSpan.classList.add('blinking-text');
-                        }
-                        valueSpan.textContent = valueDisplay;
-
-                        const createDataRow = (cells) => {
-                            const dataRow = document.createElement('tr');
-                            cells.forEach(cellValue => {
-                                const cell = document.createElement('td');
-                                if (cellValue instanceof HTMLElement) {
-                                    cell.appendChild(cellValue);
-                                } else {
-                                    cell.textContent = cellValue;
-                                }
-                                dataRow.appendChild(cell);
-                            });
-                            table.appendChild(dataRow);
-                        };
-
-                        createDataRow([link, valueSpan, earliestTime, latestTime]);
-                    }
-                });
-            });
-        });
-
-        return table;
     }
 
     function createTableDataSpike(data) {
