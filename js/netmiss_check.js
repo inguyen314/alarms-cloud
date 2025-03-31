@@ -9,15 +9,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     let setBaseUrl = null;
     if (cda === "internal") {
-        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        setBaseUrl = `https://wm.${office.toLowerCase()}.ds.usace.army.mil/${office.toLowerCase()}-data/`;
     } else if (cda === "internal-coop") {
-        setBaseUrl = `https://wm-${office.toLowerCase()}coop.mvk.ds.usace.army.mil:8243/${office.toLowerCase()}-data/`;
+        setBaseUrl = `https://wm-${office.toLowerCase()}coop.mvk.ds.usace.army.mil/${office.toLowerCase()}-data/`;
     } else if (cda === "public") {
         setBaseUrl = `https://cwms-data.usace.army.mil/cwms-data/`;
     }
     // console.log("setBaseUrl: ", setBaseUrl);
 
-    const apiUrl = setBaseUrl + `location/group?office=${office}&include-assigned=false&location-category-like=${setCategory}`;
+    const apiUrl = setBaseUrl + `location/group?office=${office}&group-office-id=${office}&category-office-id=${office}&category-id=${setCategory}`;
     // console.log("apiUrl: ", apiUrl);
 
     const netmissTsidMap = new Map();
@@ -28,11 +28,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Get current date and time
     const currentDateTime = new Date();
-    // console.log('currentDateTime:', currentDateTime);
+    console.log('currentDateTime:', currentDateTime);
 
     // Subtract thirty hours from current date and time
     const currentDateTimeMinus30Hours = subtractHoursFromDate(currentDateTime, 23);
-    // console.log('currentDateTimeMinus30Hours :', currentDateTimeMinus30Hours);
+    console.log('currentDateTimeMinus30Hours :', currentDateTimeMinus30Hours);
 
     fetch(apiUrl)
         .then(response => {
@@ -225,9 +225,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                                 }).then(res => res.json())
                             ])
                                 .then(([stageData, netmissData, nwsData]) => {
-                                    // console.log('stageData:', stageData);
-                                    // console.log('netmissData:', netmissData);
-                                    // console.log('nwsData:', nwsData);
+                                    console.log('stageData:', stageData);
+                                    console.log('netmissData:', netmissData);
+                                    console.log('nwsData:', nwsData);
 
                                     if (stageData.values) {
                                         stageData.values.forEach(entry => {
@@ -327,40 +327,39 @@ document.addEventListener('DOMContentLoaded', async function () {
     const findValuesAtTimes = (data) => {
         const result = [];
         const currentDate = new Date();
-
+    
         // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
         const timesToCheck = [
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
         ];
-
+    
         const foundValues = [];
-
-        // Iterate over the values in the provided data
+    
+        // Ensure data.values exists and is an array
+        if (!data || !Array.isArray(data.values)) {
+            console.error(`Error: Missing or invalid 'values' property for location ${data?.name || 'unknown'}`);
+            return [{ name: data?.name || 'unknown', values: timesToCheck.map(time => ({ time: formatTime(time), value: null })) }];
+        }
+    
         const values = data.values;
-
+    
         // Check for each time in the order of preference
         timesToCheck.forEach((time) => {
-            // Format the date-time to match the format in the data
             const formattedTime = formatTime(time);
-
             const entry = values.find(v => v[0] === formattedTime);
-            if (entry) {
-                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-            } else {
-                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-            }
+    
+            foundValues.push({ time: formattedTime, value: entry ? entry[1] : null }); // Store null if not found
         });
-
-        // Push the result for this data entry
+    
         result.push({
             name: data.name,
             values: foundValues // This will contain the array of { time, value } objects
         });
-
+    
         return result;
-    };
+    };    
 
     function getValidValue(values) {
         // Get the first non-null value from the values array
