@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    // Delay execution for 30 seconds (30000 milliseconds)
     await new Promise(resolve => setTimeout(resolve, 40000));
 
     const currentDateTime = new Date();
@@ -274,53 +273,15 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 return; // Early return if the type is unknown
                                             }
 
-                                            let maxValueKey;
-                                            if (type === 'stage-rev') {
-                                                maxValueKey = 'stage-rev-max-value';
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
-                                            let minValueKey;
-                                            if (type === 'stage-rev') {
-                                                minValueKey = 'stage-rev-min-value';
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
                                             if (!locData[lastValueKey]) {
                                                 locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
-                                            if (!locData[maxValueKey]) {
-                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
-                                            if (!locData[minValueKey]) {
-                                                locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
 
-                                            // Get and store the last max value for the specific tsid
-                                            const maxValue = getMaxValue(data, tsid);
-                                            // console.log("maxValue: ", maxValue);
-
-                                            // Get and store the last min value for the specific tsid
-                                            const minValue = getMinValue(data, tsid);
-                                            // console.log("minValue: ", minValue);
-
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
-
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[maxValueKey].push(maxValue);
-
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[minValueKey].push(minValue);
                                         })
 
                                         .catch(error => {
@@ -517,9 +478,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Check if there are valid lastDatmanValues in the data
                     if (hasDataSpike(combinedData)) {
-                        console.log("combinedData has data spike. Calling createTableDataSpike.");
+                        console.log("combinedData has data spike. Calling createTable.");
                         // call createTable if data spike exists
-                        const table = createTableDataSpike(combinedData);
+                        const table = createTable(combinedData);
 
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
@@ -596,142 +557,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         return null;
     }
 
-    function getMaxValue(data, tsid) {
-        let maxValue = -Infinity; // Start with the smallest possible value
-        let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
-
-        // Loop through the values array
-        for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update maxValue and maxEntry if the current value is greater
-                if (data.values[i][1] > maxValue) {
-                    maxValue = data.values[i][1];
-                    maxEntry = {
-                        tsid: tsid,
-                        timestamp: data.values[i][0],
-                        value: data.values[i][1],
-                        qualityCode: data.values[i][2]
-                    };
-                }
-            }
-        }
-
-        // Return the max entry (or null if no valid values were found)
-        return maxEntry;
-    }
-
-    function getMinValue(data, tsid) {
-        let minValue = Infinity; // Start with the largest possible value
-        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
-
-        // Loop through the values array
-        for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update minValue and minEntry if the current value is smaller
-                if (data.values[i][1] < minValue) {
-                    minValue = data.values[i][1];
-                    minEntry = {
-                        tsid: tsid,
-                        timestamp: data.values[i][0],
-                        value: data.values[i][1],
-                        qualityCode: data.values[i][2]
-                    };
-                }
-            }
-        }
-
-        // Return the min entry (or null if no valid values were found)
-        return minEntry;
-    }
-
-    function hasLastValue(data) {
-        let allLocationsValid = true; // Flag to track if all locations are valid
-
-        // Iterate through each key in the data object
-        for (const locationIndex in data) {
-            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
-                const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
-                const assignedLocations = item['assigned-locations'];
-                // Check if assigned-locations is an object
-                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    // console.log('No assigned-locations found in basin:', item);
-                    allLocationsValid = false; // Mark as invalid since no assigned locations are found
-                    continue; // Skip to the next basin
-                }
-
-                // Iterate through each location in assigned-locations
-                for (const locationName in assignedLocations) {
-                    const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
-                    // Check if location['tsid-temp-water'] exists, if not, set tempWaterTsidArray to an empty array
-                    const datmanTsidArray = (location['tsid-stage-rev'] && location['tsid-stage-rev']['assigned-time-series']) || [];
-                    const datmanLastValueArray = location['stage-rev-last-value'];
-                    // console.log("datmanTsidArray: ", datmanTsidArray);
-                    // console.log("datmanLastValueArray: ", datmanLastValueArray);
-
-                    // Check if 'stage-rev-last-value' exists and is an array
-                    let hasValidValue = false;
-
-                    if (Array.isArray(datmanTsidArray) && datmanTsidArray.length > 0) {
-                        // console.log('datmanTsidArray has data.');
-
-                        // Loop through the datmanLastValueArray and check for null or invalid entries
-                        for (let i = 0; i < datmanLastValueArray.length; i++) {
-                            const entry = datmanLastValueArray[i];
-                            // console.log("Checking entry: ", entry);
-
-                            // Step 1: If the entry is null, set hasValidValue to false
-                            if (entry === null) {
-                                // console.log(`Entry at index ${i} is null and not valid.`);
-                                hasValidValue = false;
-                                continue; // Skip to the next iteration, this is not valid
-                            }
-
-                            // Step 2: If the entry exists, check if the value is valid
-                            if (entry.value !== null && entry.value !== 'N/A' && entry.value !== undefined) {
-                                // console.log(`Valid entry found at index ${i}:`, entry);
-                                hasValidValue = true; // Set to true only if we have a valid entry
-                            } else {
-                                // console.log(`Entry at index ${i} has an invalid value:`, entry.value);
-                                hasValidValue = false; // Invalid value, so set it to false
-                            }
-                        }
-
-                        // console.log("hasValidValue: ", hasValidValue);
-
-                        // Log whether a valid entry was found
-                        if (hasValidValue) {
-                            // console.log("There are valid entries in the array.");
-                        } else {
-                            // console.log("There are invalid entries found in the array.");
-                        }
-                    } else {
-                        // console.log(`datmanTsidArray is either empty or not an array for location ${locationName}.`);
-                    }
-
-                    // If no valid values found in the current location, mark as invalid
-                    if (!hasValidValue) {
-                        allLocationsValid = false; // Set flag to false if any location is invalid
-                    }
-                }
-            }
-        }
-
-        // Return true only if all locations are valid
-        if (allLocationsValid) {
-            console.log('All locations have valid entries.');
-            return true;
-        } else {
-            console.log('Some locations are missing valid entries.');
-            return false;
-        }
-    }
-
     function hasDataSpike(data) {
         // Iterate through each key in the data object
         for (const locationIndex in data) {
@@ -784,7 +609,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return false;
     }
 
-    function createTableDataSpike(data) {
+    function createTable(data) {
         const table = document.createElement('table');
         table.id = 'customers'; // Assigning the ID of "customers"
 

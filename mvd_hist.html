@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- Setup url parameters -->
+
 <script>
     // Create a URL object with the current page URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -15,19 +15,12 @@
     const cdaDefault = (documentRoot === `https://wm.${office.toLocaleLowerCase()}.ds.usace.army.mil/`) ? "internal" : "public";
     console.log("cdaDefault: ", cdaDefault);
 
-    // Determine the default value of cda based on documentRoot
-    const typeDefault = (documentRoot === `https://wm.${office.toLocaleLowerCase()}.ds.usace.army.mil/`) ? "internal" : "public";
-    console.log("typeDefault: ", typeDefault);
-
     // Get the value of a specific parameter
     var cda = urlParams.get('cda') || cdaDefault;
     console.log('cda: ', cda);
 
-    var type = urlParams.get('type') || typeDefault;
+    var type = urlParams.get('type');
     console.log('type: ', type);
-
-    var basin = urlParams.get('basin') || 'Mississippi';
-    console.log('basin: ', basin);
 </script>
 
 <head>

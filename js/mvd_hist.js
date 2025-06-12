@@ -9,18 +9,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLookBackHours = null;
     let reportDiv = null;
 
-    console.log("***********************************************************************");
-    console.log("********************* alarm_mvd_hist **********************************");
-    console.log("***********************************************************************");
     reportDiv = "alarm_mvd_hist";
     setLocationCategory = "Mvd-Hist";
     setLocationGroupOwner = "MVD";
     setTimeseriesGroup1 = "Mvd-Hist";
     setLookBackHours = subtractDaysFromDate(new Date(), 5);
 
-    // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
-    loadingIndicator.style.display = 'block'; // Show the loading indicator
+    loadingIndicator.style.display = 'block';
 
     console.log("setLocationCategory: ", setLocationCategory);
     console.log("setLocationGroupOwner: ", setLocationGroupOwner);
@@ -46,7 +42,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Initialize arrays for storing promises
     const ownerPromises = [];
     const datmanTsidPromises = [];
-    // const riverMilePromises = [];
 
     // Fetch location group data from the API
     fetch(categoryApiUrl)
@@ -176,16 +171,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     loc['owner'] = ownerMapData;
                                 }
 
-                                // Add datman to json
                                 const tsidDatmanMapData = tsidDatmanMap.get(loc['location-id']);
                                 if (tsidDatmanMapData) {
                                     reorderByAttribute(tsidDatmanMapData);
                                     loc['tsid-datman'] = tsidDatmanMapData;
                                 } else {
-                                    loc['tsid-datman'] = null;  // Append null if missing
+                                    loc['tsid-datman'] = null;
                                 }
 
-                                // Initialize empty arrays to hold API and last-value data for various parameters
                                 loc['datman-api-data'] = [];
                                 loc['datman-last-value'] = [];
                             });
@@ -227,70 +220,31 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                                             let apiDataKey;
                                             if (type === 'datman') {
-                                                apiDataKey = 'datman-api-data'; // Assuming 'do-api-data' is the key for dissolved oxygen data
+                                                apiDataKey = 'datman-api-data';
                                             } else {
                                                 console.error('Unknown type:', type);
-                                                return; // Early return to avoid pushing data if type is unknown
+                                                return;
                                             }
 
                                             locData[apiDataKey].push(data);
 
                                             let lastValueKey;
                                             if (type === 'datman') {
-                                                lastValueKey = 'datman-last-value';  // Assuming 'do-last-value' is the key for dissolved oxygen last value
+                                                lastValueKey = 'datman-last-value';
                                             } else {
                                                 console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
-                                            let maxValueKey;
-                                            if (type === 'datman') {
-                                                maxValueKey = 'datman-max-value';
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
-                                            }
-
-                                            let minValueKey;
-                                            if (type === 'datman') {
-                                                minValueKey = 'datman-min-value';
-                                            } else {
-                                                console.error('Unknown type:', type);
-                                                return; // Early return if the type is unknown
+                                                return;
                                             }
 
                                             if (!locData[lastValueKey]) {
-                                                locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                                locData[lastValueKey] = [];
                                             }
-
-                                            if (!locData[maxValueKey]) {
-                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
-                                            if (!locData[minValueKey]) {
-                                                locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
-                                            }
-
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
 
-                                            // Get and store the last max value for the specific tsid
-                                            const maxValue = getMaxValue(data, tsid);
-                                            // console.log("maxValue: ", maxValue);
-
-                                            // Get and store the last min value for the specific tsid
-                                            const minValue = getMinValue(data, tsid);
-                                            // console.log("minValue: ", minValue);
-
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
-
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[maxValueKey].push(maxValue);
-
-                                            // Push the last non-null value to the corresponding last-value array
-                                            locData[minValueKey].push(minValue);
                                         })
 
                                         .catch(error => {
@@ -406,10 +360,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                         data.forEach(basin => {
                             // Top-level assigned-locations
                             if (basin['assigned-locations']) {
-                                basin['assigned-locations'] = basin['assigned-locations'].filter(loc => 
+                                basin['assigned-locations'] = basin['assigned-locations'].filter(loc =>
                                     !tempLocRemove.includes(loc['location-id'])
                                 );
-                    
+
                                 // If any assigned-location itself has nested "owner" with assigned-locations
                                 basin['assigned-locations'].forEach(loc => {
                                     if (loc.owner && loc.owner['assigned-locations']) {
@@ -512,42 +466,32 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     console.log('Filtered all basins where assigned-locations is null or empty successfully:', combinedData);
 
-                        // Check if there are valid lastDatmanValues in the data
-                        if (hasLastValue(combinedData)) {
-                            console.log("combinedData has all valid data.");
-                            if (hasDataSpike(combinedData)) {
-                                console.log("combinedData has all valid data, but data spike detected. Calling createTableDataSpike.");
-                                // call createTable if data spike exists
-                                const table = createTableDataSpike(combinedData);
+                    // Check if there are valid lastDatmanValues in the data
+                    if (hasLastValue(combinedData)) {
+                        console.log("combinedData has all valid data. Displaying image instead.");
 
-                                // Append the table to the specified container
-                                const container = document.getElementById(`table_container_${reportDiv}`);
-                                container.appendChild(table);
-                            } else {
-                                console.log("combinedData has all valid data and no data spikes detected. Displaying image instead.");
+                        // Create an img element
+                        const img = document.createElement('img');
+                        img.src = '/mvs/alarms/images/passed.png'; // Set the image source
+                        img.alt = 'Process Completed'; // Optional alt text for accessibility
+                        img.style.width = '50px'; // Optional: set the image width
+                        img.style.height = '50px'; // Optional: set the image height
 
-                                // Create an img element
-                                const img = document.createElement('img');
-                                img.src = '/mvs/alarms/images/passed.png'; // Set the image source
-                                img.alt = 'Process Completed'; // Optional alt text for accessibility
-                                img.style.width = '50px'; // Optional: set the image width
-                                img.style.height = '50px'; // Optional: set the image height
+                        // Get the container and append the image
+                        const container = document.getElementById(`table_container_${reportDiv}`);
+                        container.appendChild(img);
 
-                                // Get the container and append the image
-                                const container = document.getElementById(`table_container_${reportDiv}`);
-                                container.appendChild(img);
-                            }
-                        } else {
-                            console.log("combinedData does not have all valid data. Calling createTable");
+                    } else {
+                        console.log("combinedData does not have all valid data. Calling createTable");
 
-                            // Only call createTable if no valid data exists
-                            const table = createTable(combinedData, type);
+                        // Only call createTable if no valid data exists
+                        const table = createTable(combinedData, type);
 
-                            // Append the table to the specified container
-                            const container = document.getElementById(`table_container_${reportDiv}`);
-                            container.appendChild(table);
-                        }
-                    
+                        // Append the table to the specified container
+                        const container = document.getElementById(`table_container_${reportDiv}`);
+                        container.appendChild(table);
+                    }
+
                     loadingIndicator.style.display = 'none';
                 })
                 .catch(error => {
@@ -603,56 +547,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         // If no non-null value is found, return null
         return null;
-    }
-
-    function getMaxValue(data, tsid) {
-        let maxValue = -Infinity; // Start with the smallest possible value
-        let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
-
-        // Loop through the values array
-        for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update maxValue and maxEntry if the current value is greater
-                if (data.values[i][1] > maxValue) {
-                    maxValue = data.values[i][1];
-                    maxEntry = {
-                        tsid: tsid,
-                        timestamp: data.values[i][0],
-                        value: data.values[i][1],
-                        qualityCode: data.values[i][2]
-                    };
-                }
-            }
-        }
-
-        // Return the max entry (or null if no valid values were found)
-        return maxEntry;
-    }
-
-    function getMinValue(data, tsid) {
-        let minValue = Infinity; // Start with the largest possible value
-        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
-
-        // Loop through the values array
-        for (let i = 0; i < data.values.length; i++) {
-            // Check if the value at index i is not null
-            if (data.values[i][1] !== null) {
-                // Update minValue and minEntry if the current value is smaller
-                if (data.values[i][1] < minValue) {
-                    minValue = data.values[i][1];
-                    minEntry = {
-                        tsid: tsid,
-                        timestamp: data.values[i][0],
-                        value: data.values[i][1],
-                        qualityCode: data.values[i][2]
-                    };
-                }
-            }
-        }
-
-        // Return the min entry (or null if no valid values were found)
-        return minEntry;
     }
 
     function hasLastValue(data) {
@@ -739,58 +633,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.log('Some locations are missing valid entries.');
             return false;
         }
-    }
-
-    function hasDataSpike(data) {
-        // Iterate through each key in the data object
-        for (const locationIndex in data) {
-            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
-                const item = data[locationIndex];
-
-                const assignedLocations = item['assigned-locations'];
-                // Check if assigned-locations is an object
-                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    continue; // Skip to the next basin
-                }
-
-                // Iterate through each location in assigned-locations
-                for (const locationName in assignedLocations) {
-                    const location = assignedLocations[locationName];
-
-                    // Safely check datman-max-value and datman-min-value
-                    const datmanMaxValueArray = location['datman-max-value'];
-                    const datmanMinValueArray = location['datman-min-value'];
-
-                    // Ensure that both are valid arrays and have at least one element
-                    if (Array.isArray(datmanMaxValueArray) && datmanMaxValueArray.length > 0 &&
-                        Array.isArray(datmanMinValueArray) && datmanMinValueArray.length > 0) {
-
-                        const datmanMaxValue = datmanMaxValueArray[0]?.value ?? null;
-                        const datmanMinValue = datmanMinValueArray[0]?.value ?? null;
-
-                        // Check if datmanMaxValue or datmanMinValue exists and are valid numbers
-                        if (datmanMaxValue !== null && datmanMinValue !== null) {
-                            // Check if the max value exceeds 999 or the min value is less than -999
-                            if (datmanMaxValue > 1999) {
-                                return true; // Return true if any spike is found
-                            }
-                            if (datmanMinValue < -1999) {
-                                return true; // Return true if any spike is found
-                            }
-                        } else {
-                            // Log missing value properties if necessary
-                            // console.log(`Invalid datman-max-value or datman-min-value in location ${locationName}`);
-                        }
-                    } else {
-                        // Log invalid arrays if necessary
-                        // console.log(`datman-max-value or datman-min-value not found or invalid in location ${locationName}`);
-                    }
-                }
-            }
-        }
-
-        // Return false if no data spikes were found
-        return false;
     }
 
     function createTable(data, type) {
@@ -886,148 +728,5 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
 
         return table;
-    }
-
-    function createTableDataSpike(data) {
-        const table = document.createElement('table');
-        table.id = 'customers'; // Assigning the ID of "customers"
-
-        data.forEach(item => {
-            const assignedLocations = item['assigned-locations'];
-
-            // Proceed only if there are assigned locations
-            if (Array.isArray(assignedLocations) && assignedLocations.length > 0) {
-
-                // Process each assigned location
-                assignedLocations.forEach(location => {
-                    let hasDataRows = false; // Reset flag for each location
-
-                    const datmanMaxData = location['datman-max-value'] || [];
-                    const datmanMinData = location['datman-min-value'] || [];
-                    const ownerData = location['owner'][`assigned-locations`] || [];
-                    const locationIdData = location['location-id'] || [];
-
-                    // console.log("ownerData: ", ownerData);
-                    // console.log("locationIdData: ", locationIdData);
-
-                    // Temporary storage for data entries to check for spikes
-                    const spikeData = [];
-
-                    // Check each data type for spikes, with both min and max values
-                    const checkForSpikes = (minDataArray, maxDataArray) => {
-                        minDataArray.forEach((minEntry, index) => {
-                            const tsid = minEntry.tsid;
-                            const minValue = parseFloat(minEntry.value); // Get min value
-                            const maxEntry = maxDataArray[index];
-                            const maxValue = parseFloat(maxEntry?.value || 0); // Get max value (ensure no undefined)
-                            const latestTime = minEntry.timestamp; // Use timestamp from minDataArray
-
-                            // Check for spike condition (both min and max)
-                            if (maxValue > 999 || minValue < -999) {
-                                spikeData.push({
-                                    tsid,
-                                    maxValue: maxValue.toFixed(2),
-                                    minValue: minValue.toFixed(2),
-                                    timestamp: latestTime
-                                });
-                                hasDataRows = true; // Mark that we have valid data rows
-                            }
-                        });
-                    };
-
-                    // Check for spikes in each type of data
-                    checkForSpikes(datmanMinData, datmanMaxData);
-
-                    // Log the collected spike data for debugging
-                    // console.log("datmanMaxData: ", datmanMaxData);
-                    // console.log("datmanMinData: ", datmanMinData);
-                    // console.log(`Spike data for location ${location[`location-id`]}:`, spikeData);
-                    // console.log("hasDataRows: ", hasDataRows);
-
-                    // Create header and subheader if we have spike data
-                    if (hasDataRows) {
-                        // Create header row for the item's ID
-                        const headerRow = document.createElement('tr');
-                        const idHeader = document.createElement('th');
-                        idHeader.colSpan = 4; // Adjusting colspan for an additional column
-                        idHeader.style.backgroundColor = 'darkblue';
-                        idHeader.style.color = 'white';
-                        idHeader.textContent = item.id; // Display the item's ID
-                        headerRow.appendChild(idHeader);
-                        table.appendChild(headerRow);
-
-                        // Create subheader row for "Time Series", "Max Value", "Min Value", "Latest Time"
-                        const subHeaderRow = document.createElement('tr');
-                        ['Time Series', 'Max Value', 'Min Value', 'Latest Time'].forEach((headerText, index) => {
-                            const td = document.createElement('td');
-                            td.textContent = headerText;
-
-                            // Set width for each column
-                            if (index === 0) {
-                                td.style.width = '50%';
-                            } else if (index === 1 || index === 2) {
-                                td.style.width = '15%';
-                            } else {
-                                td.style.width = '20%';
-                            }
-
-                            subHeaderRow.appendChild(td);
-                        });
-                        table.appendChild(subHeaderRow);
-
-                        // Append data rows for spikes
-                        spikeData.forEach(({ tsid, maxValue, minValue, timestamp }) => {
-                            createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData);
-                        });
-                    }
-                });
-            }
-        });
-
-
-        return table;
-
-        // Helper function to create data rows
-        function createDataRow(tsid, maxValue, minValue, timestamp, ownerData, locationIdData) {
-            const dataRow = document.createElement('tr');
-
-            // First column (tsid) as a link
-            const nameCell = document.createElement('td');
-            const link = document.createElement('a');
-            link.href = `mvs/chart/index.html?office=MVS&cwms_ts_id=${tsid}&cda=${cda}&lookback=4`; // Set the link's destination (you can modify the URL)
-            link.target = '_blank'; // Open link in a new tab
-            link.textContent = tsid;
-            nameCell.appendChild(link);
-
-            // Check if locationIdData matches any entry in ownerData
-            const isMatch = ownerData.some(owner => owner['location-id'] === locationIdData);
-            if (!isMatch) {
-                nameCell.style.color = 'darkblue'; // Apply dark blue color if there's a match
-            }
-
-            const maxValueCell = document.createElement('td');
-            // Wrap the max value in a span with the blinking-text class
-            const maxValueSpan = document.createElement('span');
-            maxValueSpan.classList.add('blinking-text');
-            maxValueSpan.textContent = maxValue;
-            maxValueCell.appendChild(maxValueSpan);
-
-            const minValueCell = document.createElement('td');
-            // Wrap the min value in a span with the blinking-text class
-            const minValueSpan = document.createElement('span');
-            minValueSpan.classList.add('blinking-text');
-            minValueSpan.textContent = minValue;
-            minValueCell.appendChild(minValueSpan);
-
-            const latestTimeCell = document.createElement('td');
-            latestTimeCell.textContent = timestamp;
-
-            dataRow.appendChild(nameCell);
-            dataRow.appendChild(maxValueCell);
-            dataRow.appendChild(minValueCell);
-            dataRow.appendChild(latestTimeCell);
-
-            table.appendChild(dataRow);
-        }
     }
 });

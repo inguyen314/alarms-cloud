@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async function () {
     await new Promise(resolve => setTimeout(resolve, 5000));
-    
+
     // Display the loading indicator
     const loadingIndicator = document.getElementById('loading_alarm_netmiss_check');
     loadingIndicator.style.display = 'block';
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // console.log("setBaseUrl: ", setBaseUrl);
 
     const apiUrl = setBaseUrl + `location/group?office=${office}&group-office-id=${office}&category-office-id=${office}&category-id=${setCategory}`;
-    // console.log("apiUrl: ", apiUrl);
+    console.log("apiUrl: ", apiUrl);
 
     const netmissTsidMap = new Map();
     const metadataMap = new Map();
@@ -128,34 +128,33 @@ document.addEventListener('DOMContentLoaded', async function () {
                                         );
                                     }
 
-                                    if ("metadata" === "metadata") {
-                                        // Construct the URL for the location metadata request
-                                        let locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
-                                        if (locApiUrl) {
-                                            // Push the fetch promise to the metadataPromises array
-                                            metadataPromises.push(
-                                                fetch(locApiUrl)
-                                                    .then(response => {
-                                                        if (response.status === 404) {
-                                                            console.warn(`Location metadata not found for location: ${loc['location-id']}`);
-                                                            return null; // Skip processing if no metadata is found
-                                                        }
-                                                        if (!response.ok) {
-                                                            throw new Error(`Network response was not ok: ${response.statusText}`);
-                                                        }
-                                                        return response.json();
-                                                    })
-                                                    .then(locData => {
-                                                        if (locData) {
-                                                            metadataMap.set(loc['location-id'], locData);
-                                                        }
-                                                    })
-                                                    .catch(error => {
-                                                        console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
-                                                    })
-                                            );
-                                        }
+                                    // Construct the URL for the location metadata request
+                                    let locApiUrl = setBaseUrl + `locations/${loc['location-id']}?office=${office}`;
+                                    if (locApiUrl) {
+                                        // Push the fetch promise to the metadataPromises array
+                                        metadataPromises.push(
+                                            fetch(locApiUrl)
+                                                .then(response => {
+                                                    if (response.status === 404) {
+                                                        console.warn(`Location metadata not found for location: ${loc['location-id']}`);
+                                                        return null; // Skip processing if no metadata is found
+                                                    }
+                                                    if (!response.ok) {
+                                                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                                                    }
+                                                    return response.json();
+                                                })
+                                                .then(locData => {
+                                                    if (locData) {
+                                                        metadataMap.set(loc['location-id'], locData);
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error(`Problem with the fetch operation for location ${loc['location-id']}:`, error);
+                                                })
+                                        );
                                     }
+
                                 });
                             }
                         })
@@ -252,11 +251,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     locData['netmissData'] = netmissData;
                                     locData['nwsData'] = nwsData;
 
-                                    // Execute the functions to find values and create the table
                                     const stageValuesAtPreferredTimes = findValuesAtTimes(stageData);
                                     // console.log('stageValuesAtPreferredTimes:', stageValuesAtPreferredTimes);
+
                                     const netmissValuesAtPreferredTimes = findValuesAtTimes(netmissData);
                                     // console.log('netmissValuesAtPreferredTimes:', netmissValuesAtPreferredTimes);
+
                                     const nwsValuesAtPreferredTimes = findValuesAtTimes(nwsData);
                                     // console.log('nwsValuesAtPreferredTimes:', nwsValuesAtPreferredTimes);
 
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                     // Append the table to the specified container
                     const container = document.getElementById('table_container_alarm_netmiss_check');
-                    const table = createTableNetmissCheck(combinedData);
+                    const table = createTable(combinedData);
                     container.appendChild(table);
 
                     loadingIndicator.style.display = 'none';
@@ -327,39 +327,39 @@ document.addEventListener('DOMContentLoaded', async function () {
     const findValuesAtTimes = (data) => {
         const result = [];
         const currentDate = new Date();
-    
+
         // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
         const timesToCheck = [
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
             new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
         ];
-    
+
         const foundValues = [];
-    
+
         // Ensure data.values exists and is an array
         if (!data || !Array.isArray(data.values)) {
             console.error(`Error: Missing or invalid 'values' property for location ${data?.name || 'unknown'}`);
             return [{ name: data?.name || 'unknown', values: timesToCheck.map(time => ({ time: formatTime(time), value: null })) }];
         }
-    
+
         const values = data.values;
-    
+
         // Check for each time in the order of preference
         timesToCheck.forEach((time) => {
             const formattedTime = formatTime(time);
             const entry = values.find(v => v[0] === formattedTime);
-    
+
             foundValues.push({ time: formattedTime, value: entry ? entry[1] : null }); // Store null if not found
         });
-    
+
         result.push({
             name: data.name,
             values: foundValues // This will contain the array of { time, value } objects
         });
-    
+
         return result;
-    };    
+    };
 
     function getValidValue(values) {
         // Get the first non-null value from the values array
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return validValue ? (validValue.value).toFixed(1) : 'N/A';
     }
 
-    function createTableNetmissCheck(data) {
+    function createTable(data) {
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');

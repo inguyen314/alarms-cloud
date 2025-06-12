@@ -568,10 +568,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         );
     }
 
-    function subtractHoursFromDate(date, hoursToSubtract) {
-        return new Date(date.getTime() - (hoursToSubtract * 60 * 60 * 1000));
-    }
-
     function subtractDaysFromDate(date, daysToSubtract) {
         return new Date(date.getTime() - (daysToSubtract * 24 * 60 * 60 * 1000));
     }
@@ -588,50 +584,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     const reorderByAttribute = (data) => {
         data['assigned-time-series'].sort((a, b) => a.attribute - b.attribute);
-    };
-
-    const formatTime = (date) => {
-        const pad = (num) => (num < 10 ? '0' + num : num);
-        return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    };
-
-    const findValuesAtTimes = (data) => {
-        const result = [];
-        const currentDate = new Date();
-
-        // Create time options for 5 AM, 6 AM, and 7 AM today in Central Standard Time
-        const timesToCheck = [
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 6, 0), // 6 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 5, 0), // 5 AM CST
-            new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 7, 0)  // 7 AM CST
-        ];
-
-        const foundValues = [];
-
-        // Iterate over the values in the provided data
-        const values = data.values;
-
-        // Check for each time in the order of preference
-        timesToCheck.forEach((time) => {
-            // Format the date-time to match the format in the data
-            const formattedTime = formatTime(time);
-            // console.log(formattedTime);
-
-            const entry = values.find(v => v[0] === formattedTime);
-            if (entry) {
-                foundValues.push({ time: formattedTime, value: entry[1] }); // Store both time and value if found
-            } else {
-                foundValues.push({ time: formattedTime, value: null }); // Store null if not found
-            }
-        });
-
-        // Push the result for this data entry
-        result.push({
-            name: data.name,
-            values: foundValues // This will contain the array of { time, value } objects
-        });
-
-        return result;
     };
 
     function getLastNonNullValue(data, tsid) {
@@ -786,62 +738,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.log('Some locations are missing valid entries.');
             return false;
         }
-    }
-
-    function hasDataSpikeInApiDataArray(data) {
-        // Iterate through each key in the data object
-        for (const locationIndex in data) {
-            if (data.hasOwnProperty(locationIndex)) { // Ensure the key belongs to the object
-                const item = data[locationIndex];
-                // console.log(`Checking basin ${parseInt(locationIndex) + 1}:`, item); // Log the current item being checked
-
-                const assignedLocations = item['assigned-locations'];
-                // Check if assigned-locations is an object
-                if (typeof assignedLocations !== 'object' || assignedLocations === null) {
-                    // console.log('No assigned-locations found in basin:', item);
-                    continue; // Skip to the next basin
-                }
-
-                // Iterate through each location in assigned-locations
-                for (const locationName in assignedLocations) {
-                    const location = assignedLocations[locationName];
-                    // console.log(`Checking location: ${locationName}`, location); // Log the current location being checked
-
-                    const datmanApiData = location['datman-api-data'];
-
-                    // Check if 'datman-api-data' exists and has a 'values' array
-                    if (Array.isArray(datmanApiData) && datmanApiData.length > 0) {
-                        let maxValue = -Infinity; // Initialize to a very low value
-                        let minValue = Infinity; // Initialize to a very high value
-
-                        // Iterate through the 'values' array and find the max and min values
-                        datmanApiData[0]['values'].forEach(valueEntry => {
-                            const currentValue = parseFloat(valueEntry[1]);
-                            if (!isNaN(currentValue)) {
-                                maxValue = Math.max(maxValue, currentValue);
-                                minValue = Math.min(minValue, currentValue);
-                            }
-                        });
-
-                        // Log the max and min values for the location
-                        // console.log(`Max value for location ${locationName}:`, maxValue);
-                        // console.log(`Min value for location ${locationName}:`, minValue);
-
-                        // Check if the max value exceeds 999 or the min value is less than -999
-                        if (maxValue > 999 || minValue < -999) {
-                            // console.log(`Data spike detected in location ${locationName}: max = ${maxValue}, min = ${minValue}`);
-                            return true; // Return true if any spike is found
-                        }
-                    } else {
-                        console.log(`No valid 'datman-api-data' found in location ${locationName}.`);
-                    }
-                }
-            }
-        }
-
-        // Return false if no data spikes were found
-        console.log('No data spikes detected in any location.');
-        return false;
     }
 
     function hasDataSpike(data) {
@@ -1071,76 +967,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                             createDataRow(cells);
                         }
                     }
-                }
-            });
-        });
-
-        return table;
-    }
-
-    function createTableStatus(data) {
-        const table = document.createElement('table');
-        table.id = 'customers';
-
-        data.forEach(item => {
-            // Create header row for the item's ID
-            const headerRow = document.createElement('tr');
-            const idHeader = document.createElement('th');
-            idHeader.colSpan = 4;
-            // Apply styles
-            idHeader.style.backgroundColor = 'darkblue';
-            idHeader.style.color = 'white';
-            idHeader.textContent = item.id;
-            headerRow.appendChild(idHeader);
-            table.appendChild(headerRow);
-
-            // Create subheader row for "Time Series", "Value", "Earliest Time", "Latest Time"
-            const subHeaderRow = document.createElement('tr');
-            ['Time Series', 'Value', 'Earliest Time', 'Latest Time'].forEach(headerText => {
-                const td = document.createElement('td');
-                td.textContent = headerText;
-                subHeaderRow.appendChild(td);
-            });
-            table.appendChild(subHeaderRow);
-
-            // Process each assigned location
-            item['assigned-locations'].forEach(location => {
-                const datmanData = location['extents-data']?.['datman'] || [];
-
-                const createDataRow = (cells) => {
-                    const dataRow = document.createElement('tr');
-                    cells.forEach(cellValue => {
-                        const cell = document.createElement('td');
-                        if (cellValue instanceof HTMLElement) {
-                            cell.appendChild(cellValue);
-                        } else {
-                            cell.textContent = cellValue;
-                        }
-                        dataRow.appendChild(cell);
-                    });
-                    table.appendChild(dataRow);
-                };
-
-                datmanData.forEach(datmanEntry => {
-                    const tsid = datmanEntry.name;
-                    const earliestTime = datmanEntry.earliestTime;
-                    const latestTime = datmanEntry.latestTime;
-
-                    const lastDatmanValue = location['datman-last-value']?.find(entry => entry && entry.tsid === tsid) || { value: 'N/A', timestamp: 'N/A' };
-                    const valueSpan = document.createElement('span');
-
-                    if (lastDatmanValue.value === 'N/A' || isNaN(lastDatmanValue.value)) {
-                        valueSpan.classList.add('blinking-text');
-                        valueSpan.textContent = 'N/A';
-                    } else {
-                        valueSpan.textContent = parseFloat(lastDatmanValue.value).toFixed(2);
-                    }
-
-                    createDataRow([tsid, valueSpan, earliestTime, latestTime]);
-                });
-
-                if (datmanData.length === 0) {
-                    createDataRow(['No Data Available']);
                 }
             });
         });
