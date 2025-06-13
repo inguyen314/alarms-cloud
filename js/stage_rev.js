@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let setLocationGroupOwner = null;
     let setTimeseriesGroup1 = null;
     let setLookBackHours = null;
- 
+
     setLocationCategory = "Basins";
     setLocationGroupOwner = "MVS";
     setTimeseriesGroup1 = "Stage";
@@ -462,6 +462,33 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_alarm_stage_rev`);
                         container.appendChild(table);
+
+                        // --- Add Email Button ---
+                        const emailButton = document.createElement('button');
+                        emailButton.textContent = 'Email Ross';
+                        emailButton.style.marginTop = '10px';
+                        emailButton.style.display = 'block';
+
+                        emailButton.addEventListener('click', () => {
+                            const tableHtml = container.innerHTML;
+
+                            const emailTo = "ross.m.farrell@usace.army.mil; christopher.s.keen@usace.army.mil; allen.phillips@usace.army.mil";
+                            const emailCc = "dll-cemvs-water-managers@usace.army.mil";
+                            const emailSubject = "Gage Data Outage";
+
+                            const body = encodeURIComponent(
+                                `Below are the gages where data is missing:\n\n` +
+                                table.innerText
+                            );
+
+                            // Use mailto link (HTML not well-supported in most clients, using plain text)
+                            const mailtoLink = `mailto:${emailTo}?cc=${emailCc}&subject=${encodeURIComponent(emailSubject)}&body=${body}`;
+
+                            window.location.href = mailtoLink;
+                        });
+
+                        // Append button below the table
+                        container.appendChild(emailButton);
                     }
 
                     loadingIndicator.style.display = 'none';
