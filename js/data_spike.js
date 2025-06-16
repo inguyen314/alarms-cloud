@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    await new Promise(resolve => setTimeout(resolve, 40000));
+    // await new Promise(resolve => setTimeout(resolve, 40000));
 
     const currentDateTime = new Date();
 
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     setTimeseriesGroup1 = "Stage";
     setTimeseriesGroup2 = "Datman";
     setLookBackHours = subtractHoursFromDate(new Date(), 96);
-
 
     // Display the loading indicator for water quality alarm
     const loadingIndicator = document.getElementById(`loading_${reportDiv}`);
@@ -273,15 +272,53 @@ document.addEventListener('DOMContentLoaded', async function () {
                                                 return; // Early return if the type is unknown
                                             }
 
+                                            let maxValueKey;
+                                            if (type === 'stage-rev') {
+                                                maxValueKey = 'stage-rev-max-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
+                                            let minValueKey;
+                                            if (type === 'stage-rev') {
+                                                minValueKey = 'stage-rev-min-value';
+                                            } else {
+                                                console.error('Unknown type:', type);
+                                                return; // Early return if the type is unknown
+                                            }
+
                                             if (!locData[lastValueKey]) {
                                                 locData[lastValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[maxValueKey]) {
+                                                locData[maxValueKey] = [];  // Initialize as an array if it doesn't exist
+                                            }
+
+                                            if (!locData[minValueKey]) {
+                                                locData[minValueKey] = [];  // Initialize as an array if it doesn't exist
                                             }
 
                                             // Get and store the last non-null value for the specific tsid
                                             const lastValue = getLastNonNullValue(data, tsid);
 
+                                            // Get and store the last max value for the specific tsid
+                                            const maxValue = getMaxValue(data, tsid);
+                                            // console.log("maxValue: ", maxValue);
+
+                                            // Get and store the last min value for the specific tsid
+                                            const minValue = getMinValue(data, tsid);
+                                            // console.log("minValue: ", minValue);
+
                                             // Push the last non-null value to the corresponding last-value array
                                             locData[lastValueKey].push(lastValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
+                                            locData[maxValueKey].push(maxValue);
+
+                                            // Push the last non-null value to the corresponding last-value array
+                                            locData[minValueKey].push(minValue);
                                         })
 
                                         .catch(error => {
@@ -485,6 +522,33 @@ document.addEventListener('DOMContentLoaded', async function () {
                         // Append the table to the specified container
                         const container = document.getElementById(`table_container_${reportDiv}`);
                         container.appendChild(table);
+
+                        // ===== Add Email Button =====
+                        const emailButtonDataSpike = document.createElement('button');
+                        emailButtonDataSpike.textContent = 'Email Ross';
+                        emailButtonDataSpike.style.marginTop = '10px';
+                        emailButtonDataSpike.style.display = 'block';
+
+                        emailButtonDataSpike.addEventListener('click', () => {
+                            const tableHtml = container.innerHTML;
+
+                            const emailTo = "ross.m.farrell@usace.army.mil; christopher.s.keen@usace.army.mil; allen.phillips@usace.army.mil";
+                            const emailCc = "dll-cemvs-water-managers@usace.army.mil";
+                            const emailSubject = "Gage Data Spike";
+
+                            const body = encodeURIComponent(
+                                `Below are the gages where data have spikes:\n\n` +
+                                table.innerText
+                            );
+
+                            // Use mailto link (HTML not well-supported in most clients, using plain text)
+                            const mailtoLink = `mailto:${emailTo}?cc=${emailCc}&subject=${encodeURIComponent(emailSubject)}&body=${body}`;
+
+                            window.location.href = mailtoLink;
+                        });
+
+                        // Append button below the table
+                        container.appendChild(emailButtonDataSpike);
                     } else {
                         console.log("combinedData has no data spikes detected. Displaying image instead.");
 
@@ -607,6 +671,56 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // Return false if no data spikes were found
         return false;
+    }
+
+    function getMaxValue(data, tsid) {
+        let maxValue = -Infinity; // Start with the smallest possible value
+        let maxEntry = null; // Store the corresponding max entry (timestamp, value, quality code)
+
+        // Loop through the values array
+        for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // Update maxValue and maxEntry if the current value is greater
+                if (data.values[i][1] > maxValue) {
+                    maxValue = data.values[i][1];
+                    maxEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
+                }
+            }
+        }
+
+        // Return the max entry (or null if no valid values were found)
+        return maxEntry;
+    }
+
+    function getMinValue(data, tsid) {
+        let minValue = Infinity; // Start with the largest possible value
+        let minEntry = null; // Store the corresponding min entry (timestamp, value, quality code)
+
+        // Loop through the values array
+        for (let i = 0; i < data.values.length; i++) {
+            // Check if the value at index i is not null
+            if (data.values[i][1] !== null) {
+                // Update minValue and minEntry if the current value is smaller
+                if (data.values[i][1] < minValue) {
+                    minValue = data.values[i][1];
+                    minEntry = {
+                        tsid: tsid,
+                        timestamp: data.values[i][0],
+                        value: data.values[i][1],
+                        qualityCode: data.values[i][2]
+                    };
+                }
+            }
+        }
+
+        // Return the min entry (or null if no valid values were found)
+        return minEntry;
     }
 
     function createTable(data) {
